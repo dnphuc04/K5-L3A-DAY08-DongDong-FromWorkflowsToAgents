@@ -51,7 +51,7 @@
 | --- | --- | --- | --- |
 | Đồng Ngọc Phúc | Workflow + tích hợp | [dd59b0e — Completed CP2](https://github.com/dnphuc04/K5-L3A-DAY08-DongDong-FromWorkflowsToAgents/commit/dd59b0eef515dfabec26b271f743df483b00eb79) | `src/tests/test_team_workflow.py`: `test_workflow_uses_order_facts_not_ticket` (4 ca), `test_workflow_does_not_infer_missing_order_from_ticket`, `test_workflow_unknown_claim_returns_failed_trace`; 6 ca đạt; student workflow 62/62 đạt |
 | Nguyễn Trần Tiến | Single agent + ReAct | | |
-| Nguyễn Việt Hưng | Orchestrator + handoff + trace | | |
+| Nguyễn Việt Hưng | Orchestrator + handoff + trace | [1c04b12 — Update orchestrator](https://github.com/dnphuc04/K5-L3A-DAY08-DongDong-FromWorkflowsToAgents/commit/1c04b121fb71ba5aa18fff0da21cacec817b3a45) | `src/tests/test_team_orchestrator.py`: handoff thật chỉ có allowlist + tool đọc, không lộ secret/PII (14 claim); cấp `issue_refund` cho investigator bị `HandoffError` chặn; trace đúng contract và sạch (14 claim × 2 seed); crash/resume chỉ 1 refund; ticket không ghi đè DB (C-002, 5 seed); 47 ca đạt; student orchestrator 62/62 đạt |
 | Nguyễn Huy Hoàng | Kiểm thử an toàn + đánh giá | | |
 
 ## Cá nhân

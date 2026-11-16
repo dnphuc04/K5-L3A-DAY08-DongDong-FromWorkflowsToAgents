@@ -32,9 +32,21 @@ Test riêng trong `src/tests/test_team_workflow.py` gồm 6 ca: ticket nói quá
 
 Chờ bổ sung mô tả triển khai của thành viên phụ trách.
 
-### 3.3. Orchestrator
+### 3.3. Orchestrator — Nguyễn Việt Hưng
 
-Chờ bổ sung mô tả triển khai của thành viên phụ trách.
+Shape C trong `src/lab8/shapes/orchestrator.py` tách vai: orchestrator giữ quyền ghi, investigator chỉ đọc. Orchestrator đọc claim bằng `get_claim_view`, không đọc claim row thô vì row này chứa `parent_secret` và `raw_headers`. Claim không tồn tại trả `failed`, thiếu `order_id` trả `needs_info`.
+
+**Handoff.** Orchestrator tạo handoff `handoff.v1` bằng `make_handoff`, với `facts={}` và `allowed_tools` gồm 4 tool đọc: `lookup_order`, `lookup_policy`, `lookup_refund_history`, `compute_compensation`. Allowlist nằm trong code: `make_handoff` chỉ giữ trường thuộc `ALLOWED_FIELDS` và key thuộc `FACT_KEYS`, từ chối tool ghi, và từ chối payload còn canary hay header. Ticket không được đưa vào handoff vì đây là dữ liệu khách tự viết, có thể sai hoặc chứa lệnh chèn; tóm tắt ngữ cảnh bằng LLM cũng không được coi là sanitize.
+
+**Investigator.** `run_readonly_investigators` chạy các tool trong handoff qua `dispatch(worker=True)` với `principal_id` của claim, nên investigator không có đường nào gọi `issue_refund`. Đơn không tìm thấy hoặc thuộc principal khác trả `escalated`. Quote do `compute_compensation` tính từ order row trong DB và policy hiện hành. Shape không dùng số ngày trễ trong ticket, nên C-002 (ticket ghi 5 ngày, đơn ghi 2 ngày) bị `denied` ở cả 5 seed. Đây là ca swarm tham chiếu thua ở seed 55.
+
+**Ghi tiền.** Quote bằng 0 trả `denied` và không gọi host. Quote dương được truyền đầy đủ vào `durability.issue_refund` kèm `crash_at`; host kiểm approval, áp trần theo đơn, trừ phần đã hoàn và giữ idempotency. Ví dụ C-014: shape đề xuất 150.000 VND, host ghi 120.000 VND, `proposal_amount` vẫn là 150.000. `InjectedCrash` được ghi vào trace, flush rồi ném lại; lần chạy lại nhận `idempotent_replay` nên ledger chỉ có một dòng. Mỗi lần chạy có đúng một model call (`purpose="draft"`, soạn phản hồi khách); model không quyết định trạng thái hay số tiền.
+
+**Trace.** Mọi nhánh return đi qua `common.finish()`, nên luôn có trace mới với `run_id` dạng `R-orchestrator-<claim>-s<seed>`. Các event gồm: `claim` (chỉ `has_order_id`), `handoff` (bản đã sanitize), `investigator` (`order_visible`, `order_reason`, lịch sử hoàn tiền dạng số), `quote`, `decision`, và `crash` khi có. Trace không chứa ticket, claim/order row thô, secret, header, SĐT, địa chỉ, ghi chú nội bộ hay tên hàng.
+
+**Kiểm thử.** `src/tests/test_team_orchestrator.py` có 47 ca. Test bắt handoff thật mà orchestrator gửi cho investigator trên 14 claim và kiểm tra allowlist, scope, tool chỉ đọc, không lộ dữ liệu nhạy cảm. Test cũng kiểm tra việc lỡ cấp `issue_refund` cho investigator bị `HandoffError` chặn và không ghi tiền; trace của 14 claim × 2 seed đúng contract và sạch; crash/resume chỉ ghi một refund; ticket không ghi đè dữ kiện DB. Phép so sánh dùng giá trị nhạy cảm thật lấy từ dữ liệu, không chỉ tìm từ khóa. Khi cố tình cho orchestrator ghi claim row vào trace, 29/47 ca fail. Ma trận student của orchestrator đạt 62/62, gồm T11 (retry) và T12 (crash/resume). Đây là kiểm thử chức năng, chưa thay thế benchmark bốn shape hoặc kết quả hidden.
+
+**Giới hạn.** Với claim có đơn hợp lệ, `tool_calls` là 6 vì `get_claim_view` được đọc hai lần: một lần ở orchestrator để lấy `principal_id`/`order_id` trước khi tạo handoff, một lần bên trong `run_readonly_investigators`. Chi phí này sẽ thể hiện trong benchmark ở mục 4.
 
 ## 4. Kết quả
 
