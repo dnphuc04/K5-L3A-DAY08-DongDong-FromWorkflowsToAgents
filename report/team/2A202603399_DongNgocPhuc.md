@@ -53,4 +53,4 @@ Sử dụng OpenAI Codex để đọc contract, hỗ trợ viết Workflow/test,
 
 Đã hoàn thành Workflow ở CP2, kiểm tra retry/crash ở CP3 và phần tích hợp/tổng hợp báo cáo ở CP5. Workflow đáp ứng luật trên public, không phụ thuộc quyết định model và có cost mô phỏng thấp nhất trong các shape được đo. Kết quả này hỗ trợ lựa chọn Workflow trong ADR nhưng chưa chứng minh độ đúng trên hidden hoặc hiệu năng khi dùng model thật.
 
-Báo cáo nhóm đã được xuất và kiểm tra dưới dạng PDF 5 trang A4. Commit dẫn chứng `526a6ae` thống nhất giữa ADR, báo cáo nhóm và TEAM; JSON thực nghiệm gốc ở `0f13675`, các cập nhật rà soát được bổ sung sau đó. Trạng thái nộp LMS không nằm trong bằng chứng kỹ thuật đã kiểm tra.
+Báo cáo nhóm đã được xuất và kiểm tra dưới dạng PDF 5 trang A4. Commit dẫn chứng mới `8679b2e` (gồm B3 và tự kiểm không nhãn) thống nhất giữa ADR, báo cáo nhóm và TEAM; JSON thực nghiệm gốc ở `0f13675`, các cập nhật rà soát được bổ sung sau đó. Trạng thái nộp LMS không nằm trong bằng chứng kỹ thuật đã kiểm tra.

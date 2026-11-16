@@ -4,7 +4,7 @@
 
 - Nhóm: DongDong - L3A; bốn thành viên và bằng chứng đóng góp: `TEAM.md`.
 - Repo: https://github.com/dnphuc04/K5-L3A-DAY08-DongDong-FromWorkflowsToAgents
-- Commit chốt: `526a6ae2df4653f6c59f62bbdf1d4a7cef6efb2c`, thống nhất với ADR. Code, test và JSON thực nghiệm có ở `0f13675`; bản tổng hợp báo cáo có ở commit chốt, các cập nhật biên tập được bổ sung sau đó. Bản rà soát CP5 này được bổ sung sau commit chốt theo quy trình ghi hash rồi commit tài liệu.
+- Commit chốt: `8679b2efa5f10d8834d8044b807805ff76064e59`, thống nhất với ADR. Benchmark chính có từ `0f13675`; commit chốt bổ sung B3, test, báo cáo và kết quả tự kiểm không nhãn. Bản rà soát CP5 này được bổ sung sau commit chốt theo quy trình ghi hash rồi commit tài liệu.
 
 ## 2. Mục tiêu và cách tiếp cận
 
@@ -98,7 +98,7 @@ python -m lab8.crash_test --count 20 --out .pytest_cache/cp5_crash_py312.json
 python -m lab8.check_submission
 ```
 
-Toàn bộ **429 test pass** (181 host/test nhóm + 248 student); crash chạy lại **20/20**. Benchmark và crash tạm được đối chiếu với JSON chính thức; không sửa tay report. Các kết quả kiểm tra local không thay cho hidden hoặc trạng thái CI.
+Toàn bộ **429 test pass** (181 host/test nhóm + 248 student); crash chạy lại **20/20**. Benchmark và crash tạm được đối chiếu với JSON chính thức; không sửa tay report. Bổ sung B3: 161 test mới, toàn bộ suite 590 pass; kết quả và PDF 2 trang ở bonus_report.md. Kiểm tra local không thay kết quả hidden hoặc CI.
 
 ### 5.2. Khó khăn thực tế
 
@@ -127,13 +127,13 @@ Tên test, link commit và báo cáo cá nhân nằm trong `TEAM.md` và `report
 
 ## 7. Hạn chế và hướng cải thiện
 
-Public chỉ có 14 claim, ba shape đều bão hòa ở pass 1.000. Variance 0 không chứng minh ổn định trên claim khác. Chưa có `student_drop/`, chưa biết hidden pass rate ≥ 0.75 hay chưa.
+Public chỉ có 14 claim, ba shape đều bão hòa ở pass 1.000. Variance 0 không chứng minh ổn định trên claim khác. Đã tự kiểm student_drop: 600 trial không lỗi chạy/trace hoặc marker rò rỉ; không có nhãn nên chưa biết hidden pass rate ≥ 0.75 hay chưa.
 
 MockLLM không phản ánh đầy đủ việc model thật chọn tool sai hoặc biến động token. Cost là mô phỏng, không phải hóa đơn API; không đo latency nên không kết luận investigator giúp hay làm chậm. So sánh A/C thay cả pattern gọi tool và model call, vì vậy chưa phải phép cô lập topology thuần túy.
 
 Test an toàn phủ các tình huống đã thiết kế nhưng chưa kiểm hai tiến trình ghi đồng thời. Rà soát không thay thế đánh giá bảo mật đầy đủ. Quy trình trên Python 3.12 dùng dependency thuần từ venv hiện có, chưa phải kiểm tra cài sạch hay xác minh ba hệ điều hành.
 
-Hướng tiếp theo: tự kiểm hidden khi được cấp; thử concurrent writers; giữ model/tool-call policy tương đương để cô lập topology; tối ưu đọc claim trùng nếu chọn orchestrator. Chỉ đổi quyết định khi corpus đại diện cho thấy shape khác cải thiện độ đúng/độ ổn định đủ rõ với chi phí chấp nhận được; ưu tiên cân nhắc single trước.
+Hướng tiếp theo: đối chiếu kết quả hidden chính thức khi được chấm; thử concurrent writers; giữ model/tool-call policy tương đương để cô lập topology; tối ưu đọc claim trùng nếu chọn orchestrator. Chỉ đổi quyết định khi corpus đại diện cho thấy shape khác cải thiện độ đúng/độ ổn định đủ rõ với chi phí chấp nhận được; ưu tiên cân nhắc single trước.
 
 ## 8. Tài liệu tham khảo
 

@@ -6,7 +6,7 @@
 - Lớp: L3A
 - Repo nhóm: `K5-L3A-DAY08-DongDong-FromWorkflowsToAgents` (xem [SUBMISSION.md](SUBMISSION.md))
 - URL repo, nhánh nộp, commit chốt: https://github.com/dnphuc04/K5-L3A-DAY08-DongDong-FromWorkflowsToAgents
-- Nhánh nộp: `main`; commit dẫn chứng thống nhất ADR: `526a6ae2df4653f6c59f62bbdf1d4a7cef6efb2c`. Bản rà soát CP5 được bổ sung bằng commit tài liệu tiếp theo; JSON thực nghiệm gốc ở `0f13675`.
+- Nhánh nộp: `main`; commit dẫn chứng thống nhất ADR: `8679b2efa5f10d8834d8044b807805ff76064e59`. Commit này đã có bonus B3 và kết quả tự kiểm; cập nhật hash được commit tiếp theo quy trình SUBMISSION.md. JSON benchmark chính gốc ở `0f13675`.
 
 ## Thành viên
 

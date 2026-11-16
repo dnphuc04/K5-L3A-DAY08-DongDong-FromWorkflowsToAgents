@@ -3,7 +3,7 @@
 Nhóm chọn kiến trúc dựa trên benchmark public, chi phí mô phỏng và các kiểm tra an toàn. Các trường dưới đây là bằng chứng cho quyết định.
 
 - Shape chọn: workflow
-- Commit hash: 526a6ae2df4653f6c59f62bbdf1d4a7cef6efb2c (mốc bài nộp đã có code, test và báo cáo; JSON thực nghiệm được sinh từ `0f13675`; tài liệu rà soát CP5 được commit tiếp theo quy trình trong SUBMISSION.md)
+- Commit hash: 8679b2efa5f10d8834d8044b807805ff76064e59 (mốc bài nộp gồm B3 và hidden_selfcheck; JSON benchmark chính ở `0f13675`; bản cập nhật hash được commit tiếp theo SUBMISSION.md)
 - Run id dẫn chứng: `R-workflow-C-001-s11` … `R-workflow-C-014-s55` (70 trial trong `src/reports/benchmark.json`); đối chứng lỗi swarm `R-swarm-C-002-s55`
 - Pass rate / pass^5 / seed min-max / variance: 1.000 / 1.000 / 1.000–1.000 / 0.000000 (14 claim × 5 seed, `src/reports/benchmark.json`)
 - Cost per success (mô phỏng, VND): 27.86 (single 29.97, swarm 49.57, orchestrator 56.65)
@@ -24,4 +24,8 @@ Trace của workflow ghi các event `claim` (chỉ `found`), `order` (chỉ `vis
 
 ## Giới hạn
 
-MockLLM và giá mô phỏng không đại diện đầy đủ cho model sản xuất. Latency là `unavailable`. Nhóm không nhận được `student_drop/` nên chưa chạy tự kiểm hidden; kết luận chỉ dựa trên 14 claim public, nơi ba shape của nhóm đều bão hòa ở 1.000, nên benchmark public không phân biệt được chất lượng giữa workflow, single và orchestrator — chỉ phân biệt được cost và độ tự chủ.
+MockLLM và giá mô phỏng không đại diện đầy đủ cho model sản xuất. Latency là `unavailable`. Đã chạy tự kiểm 40 claim không nhãn × 5 seed × 3 shape: 600 trial không lỗi chạy, trace hoặc marker rò rỉ, lưu ở `src/reports/hidden_selfcheck.json`. Không có nhãn nên chưa xác nhận pass rate hidden; kết luận chỉ dựa trên 14 claim public, nơi ba shape của nhóm đều bão hòa ở 1.000, nên benchmark public không phân biệt được chất lượng giữa workflow, single và orchestrator — chỉ phân biệt được cost và độ tự chủ.
+
+## Bổ sung B3
+
+`swarm_verified` đạt pass rate/Pass^5 1.000 trên public và 14 case đối kháng, nhưng cost/success cao hơn Workflow khoảng 2.07–2.17 lần. Nhóm giữ Workflow làm shape chính; xem `bonus_report.md` và `src/reports/bonus_b3_*.json`. Bonus vẫn phụ thuộc gate hidden ≥ 0.80 của shape chính.
