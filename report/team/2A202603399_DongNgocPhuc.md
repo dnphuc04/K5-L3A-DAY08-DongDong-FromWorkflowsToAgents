@@ -10,7 +10,7 @@
 
 ## 2. Phần việc phụ trách
 
-Phụ trách shape A Workflow, test tương ứng, phối hợp tích hợp code và tổng hợp báo cáo/chốt bài nộp. Phần đã hoàn thành gồm workflow, test riêng và kiểm tra sau merge. Phần tích hợp cuối và chốt bài nộp còn phụ thuộc việc hoàn thành Orchestrator, benchmark, ADR và các báo cáo của nhóm.
+Phụ trách shape A Workflow, test tương ứng, phối hợp tích hợp code và tổng hợp báo cáo/chốt bài nộp. Đã hoàn thành workflow, test riêng, phần Workflow trong báo cáo nhóm, bằng chứng đóng góp và kiểm tra tích hợp sau khi đủ ba shape. Đã bổ sung các mục tổng quan, khó khăn, tài liệu tham khảo và kết quả kiểm tra mới vào báo cáo nhóm. Việc push/merge cập nhật tài liệu cuối, xác minh môi trường Python theo yêu cầu và nộp LMS là các bước chốt còn lại; không coi là đã nộp bài.
 
 ## 3. Đóng góp cụ thể
 
@@ -53,7 +53,22 @@ python -m pytest -q -m student -o addopts= --tb=no -rN --basetemp=.pytest_cache/
 
 Smoke pass; host và test nhóm **79 passed**; student **186 passed, 62 failed**. Workflow, Single và Swarm đạt; Orchestrator còn stub. Đây là mốc kiểm tra sau merge, không phải xác nhận toàn bộ bài đã hoàn thành. Các lệnh thực tế dùng trực tiếp executable `../.venv/Scripts/python.exe`, tương đương `python` khi kích hoạt đúng môi trường.
 
-Môi trường kiểm tra là Windows, Python 3.14.6. Lần chạy pytest ban đầu gặp `PermissionError` với thư mục tạm mặc định; dùng `--basetemp` riêng trong `.pytest_cache` đã chạy được. Cần xác minh lại trên Python 3.11–3.13 theo yêu cầu lab. Chưa có số liệu benchmark/hidden hoặc run id benchmark để báo cáo trong phần cá nhân này.
+### Kiểm tra tích hợp mới nhất
+
+Tại commit `a8a9835`, Orchestrator đã hoàn thành và đủ báo cáo/test của bốn thành viên. Các lệnh thực tế chạy từ `src/`:
+
+```powershell
+../.venv/Scripts/python.exe -m lab8.smoke
+../.venv/Scripts/python.exe -m pytest -q --tb=short --basetemp=.pytest_cache/final-host-03
+../.venv/Scripts/python.exe -m pytest -q -m student -o addopts= --tb=short --basetemp=.pytest_cache/final-student-03
+../.venv/Scripts/python.exe -m lab8.check_submission
+```
+
+Kết quả: smoke pass; host và test nhóm **181 passed**; student toàn bộ **248 passed** (62 ca mỗi shape); `check_submission` **0 FAIL, 0 WARN**. Mốc này cập nhật kết quả tích hợp mới nhất; các kết quả 60/79 và 186 pass/62 fail phía trên được giữ như lịch sử từng giai đoạn.
+
+Đối chiếu `src/reports/benchmark.json` và ADR do Hoàng cung cấp ở commit `0f13675`: workflow đạt 70/70 trial public, pass rate và pass^5 đều 1.000, variance 0, cost/success mô phỏng 27.857142857 VND (làm tròn 27.86), không gọi model. Run id ví dụ: `R-workflow-C-001-s11`. `src/reports/crash.json` ghi 20/20. Đây là bằng chứng thực nghiệm của nhóm đã được kiểm tra cấu trúc bởi `check_submission`, không phải benchmark được cá nhân chạy lại trong lần kiểm tra tích hợp này. Chưa có kết quả hidden; không khẳng định đã đạt ngưỡng hidden.
+
+Môi trường kiểm tra là Windows, Python 3.14.6. Lần chạy pytest ban đầu gặp `PermissionError` với thư mục tạm mặc định; dùng `--basetemp` riêng trong `.pytest_cache` đã chạy được. Cần xác minh lại trên Python 3.11–3.13 theo yêu cầu lab. Không có kết quả CI được xác minh trong lần kiểm tra local này.
 
 ## 5. Công cụ AI đã dùng
 
@@ -61,6 +76,6 @@ Môi trường kiểm tra là Windows, Python 3.14.6. Lần chạy pytest ban đ
 
 ## 6. Tự đánh giá
 
-Phần triển khai Workflow ở CP2 và kiểm tra retry/crash của Workflow ở CP3 đã hoàn thành theo ma trận public. Ưu điểm là luồng cố định, không phụ thuộc quyết định model và không lấy ticket làm nguồn quyết định số tiền. Kiểm thử public chưa chứng minh pass rate hidden hoặc ưu thế cost so với các shape khác; cần benchmark cùng corpus và seed trước khi chọn kiến trúc.
+Phần triển khai Workflow ở CP2 và kiểm tra retry/crash của Workflow ở CP3 đã hoàn thành theo ma trận public. Tại mốc tích hợp mới nhất, toàn bộ host/test nhóm và student đều xanh. Ưu điểm của workflow là luồng cố định, không phụ thuộc quyết định model và không lấy ticket làm nguồn quyết định số tiền. Benchmark public của nhóm cho thấy workflow có cùng pass rate với single/orchestrator và cost mô phỏng thấp hơn, phù hợp lựa chọn trong ADR. Kết luận chỉ áp dụng cho corpus và môi trường mô phỏng đã đo, chưa chứng minh pass rate hidden hoặc hiệu năng trên model thật.
 
-Trách nhiệm tích hợp cuối, tổng hợp báo cáo và chốt bài ở CP5 chưa hoàn tất tại mốc kiểm tra nêu trên. Báo cáo này không tự chấm điểm cá nhân và không xác nhận thay kết quả kiểm tra của giảng viên.
+Phần tích hợp và tổng hợp nội dung báo cáo ở CP5 đã được cập nhật theo bằng chứng hiện có. Các bước chốt còn lại là review/push/merge tài liệu cuối, kiểm tra độ dài báo cáo nhóm theo giới hạn 5 trang ngoài phụ lục, chạy lại trên Python 3.11–3.13 và nộp link LMS. Báo cáo này không tự chấm điểm cá nhân và không xác nhận thay kết quả kiểm tra của giảng viên.

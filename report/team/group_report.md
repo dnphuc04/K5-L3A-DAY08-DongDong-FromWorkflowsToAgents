@@ -1,18 +1,20 @@
 # Báo cáo nhóm — Lab 8 LogiX-VN
 
-Tối đa 5 trang ngoài phụ lục. Số liệu lấy từ file trong `src/reports/`, không chép tay từ terminal.
+Số liệu benchmark và crash lấy từ các file do công cụ sinh trong `src/reports/`. Kết quả pytest ghi riêng như bằng chứng kiểm thử chức năng.
 
 ## 1. Thông tin nhóm
 
 - Tên nhóm: DongDong
 - Thành viên: xem `TEAM.md`
-- Commit chốt (trùng `report/team/decision_adr.md`):
+- Commit chốt (trùng `report/team/decision_adr.md`): `0f13675dd9cc24832dc466fe465a47c07ae97a18` (mốc code, test và report thực nghiệm). Kiểm tra tích hợp bổ sung tại `a8a9835`; các cập nhật tài liệu sau mốc thực nghiệm không thay thế hash dẫn chứng trong ADR.
 
 ## 2. Mục tiêu và cách tiếp cận
 
-Nhóm hiểu bài toán thế nào, chia việc ra sao, thứ tự làm bốn shape.
+Nhóm xử lý claim hoàn tiền LogiX-VN theo cùng contract bằng workflow, single agent, orchestrator và swarm tham chiếu. Mục tiêu là chọn kiến trúc ít tự chủ nhất vẫn đúng nghiệp vụ, giữ approval, bảo mật trace và chống refund trùng. Database và policy hiện hành là nguồn sự thật; ticket là dữ liệu không đáng tin. Code tính tiền, host quyết quyền ghi, model chỉ hoạt động trong phạm vi được cấp.
 
-...
+Phúc phụ trách workflow, tích hợp và tổng hợp báo cáo; Tiến phụ trách single/ReAct; Hưng phụ trách orchestrator/handoff; Hoàng phụ trách kiểm thử an toàn, crash, benchmark và phân tích. Ba shape được triển khai song song trong các file riêng, sau đó tích hợp vào `main`. Mỗi người bổ sung test và báo cáo cá nhân; commit/test cụ thể nằm trong `TEAM.md`.
+
+Nhóm kiểm tra theo thứ tự: smoke và host → student matrix từng shape → kiểm thử chéo approval, secret, retry/crash → benchmark bốn shape trên cùng 14 claim, năm seed và bảng giá → ADR/research card. Mỗi trial benchmark dùng SQLite mới. Quyết định chỉ dựa trên số liệu public và giá mô phỏng, không suy rộng thành kết quả hidden hoặc hiệu năng model thật.
 
 ## 3. Giải pháp
 
@@ -100,13 +102,27 @@ Quyết định kiến trúc và lý do: xem `report/team/decision_adr.md`. Phi�
 
 ## 5. Khó khăn và cách xử lý
 
-Lỗi gặp phải (kèm lệnh, output hoặc ảnh chụp) và cách nhóm xử lý.
+| Vấn đề quan sát được | Cách xử lý và bằng chứng |
+| --- | --- |
+| Chạy `pip install -r requirements.txt` tại gốc repo báo `No such file or directory` | Chuyển vào `src/` trước khi cài và chạy lệnh lab. Giữ nguyên cấu trúc repo. |
+| Pytest gặp `PermissionError: [WinError 5]` khi truy cập thư mục tạm `pytest-of-ThinkBook` trên Windows | Dùng `--basetemp` riêng trong `.pytest_cache`; không thay test hay logic host để né lỗi. Lệnh kiểm tra cuối được ghi bên dưới. |
+| Merge `TEAM.md` xung đột giữa thông tin Tiến và Hưng | Gộp thủ công thông tin mới của cả hai, xóa conflict marker, giữ mỗi người một dòng và kiểm tra lại bảng. |
+| PR ban đầu chọn repo gốc chương trình làm đích | Đóng PR nhầm; tạo PR vào `main` của repo nhóm và kiểm tra base repository trước khi merge. |
 
-...
+Tại commit tích hợp `a8a9835`, kiểm tra trên Windows với Python 3.14.6 bằng executable của `.venv` ở gốc repo. Các lệnh sau chạy từ `src/`:
+
+```powershell
+../.venv/Scripts/python.exe -m lab8.smoke
+../.venv/Scripts/python.exe -m pytest -q --tb=short --basetemp=.pytest_cache/final-host-03
+../.venv/Scripts/python.exe -m pytest -q -m student -o addopts= --tb=short --basetemp=.pytest_cache/final-student-03
+../.venv/Scripts/python.exe -m lab8.check_submission
+```
+
+Kết quả: smoke pass; host và test nhóm **181 passed**; student **248 passed**; kiểm tra nộp bài **0 FAIL, 0 WARN**. Không còn shape stub. Đây là kết quả local, chưa chứng minh CI hoặc hidden pass. Python 3.14.6 nằm ngoài dải 3.11–3.13 trong hướng dẫn lab; cần chạy lại trên phiên bản được yêu cầu trước khi chốt môi trường tái lập.
 
 ## 6. Tổng hợp đóng góp
 
-Chi tiết đóng góp của từng thành viên nằm trong `TEAM.md` (bảng đóng góp) và báo cáo cá nhân `report/team/MSSV_HoTen.md`.
+Phúc hoàn thành workflow, 6 ca test riêng, tích hợp và tổng hợp tài liệu; Tiến hoàn thành single và 19 ca test; Hưng hoàn thành orchestrator và 47 ca test; Hoàng hoàn thành 55 ca test an toàn xuyên shape, report crash/benchmark/ablation và phân tích. Chi tiết commit và tên test nằm trong bảng đóng góp `TEAM.md`; mỗi thành viên có báo cáo riêng trong `report/team/`. Số ca trên là test nhóm bổ sung, không cộng lẫn với 248 ca student.
 
 ## 7. Hạn chế và hướng cải thiện
 
@@ -133,4 +149,9 @@ MockLLM không phải model sản xuất; latency là `unavailable`.
 
 ## 8. Tài liệu tham khảo
 
-...
+- [Luật nghiệp vụ LogiX-VN](../../docs/business_rules.md): điều kiện hoàn tiền, policy hiệu lực, approval và trần theo đơn.
+- [Output và trace contract](../../docs/contracts.md): trạng thái, proposal, ledger/audit và ranh giới dữ liệu trong trace.
+- [Kiến trúc](../../docs/architecture.md) và [định nghĩa metric](../../docs/metrics.md): phạm vi code/model và cách so sánh các shape.
+- [Quy định lab](../../RULES.md), [rubric](../../RUBRIC.md) và [hướng dẫn nộp](../../SUBMISSION.md): phạm vi được sửa, bằng chứng và điều kiện bắt buộc.
+- [Benchmark public](../../src/reports/benchmark.json), [crash suite](../../src/reports/crash.json), [ablation R1](../../src/reports/ablation_r1.json): bằng chứng thực nghiệm của nhóm, commit `0f13675`.
+- [ADR](decision_adr.md) và [research card](research_card.md): quyết định chọn workflow, giả thuyết R1 và giới hạn. Nguồn nghiên cứu được mô tả theo thư viện tham khảo của khóa trong research card; kết quả lab không được coi là tái lập toàn bộ nghiên cứu đó.
