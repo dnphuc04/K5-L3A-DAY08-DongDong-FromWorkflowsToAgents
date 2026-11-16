@@ -28,9 +28,19 @@ Mọi nhánh trả kết quả dùng `common.finish()` để lấy effect/audit 
 
 Test riêng trong `src/tests/test_team_workflow.py` gồm 6 ca: ticket nói quá hoặc phủ nhận độ trễ không thay đổi quote ở seed 11 và 55; thiếu `order_id` không được lấy mã đơn từ ticket và không ghi thêm ledger; claim không tồn tại trả `failed` kèm trace hợp lệ. Test thiếu mã đơn cũng kiểm tra trace không chứa canary trong ticket. Ma trận student của workflow đã đạt 62/62, bao gồm retry và crash/resume. Đây là kiểm thử chức năng, chưa thay thế benchmark bốn shape hoặc kết quả hidden.
 
-### 3.2. Single
+### 3.2. Single — Nguyễn Trần Tiến
 
-Chờ bổ sung mô tả triển khai của thành viên phụ trách.
+Shape B trong `src/lab8/shapes/single.py` là một agent chạy vòng ReAct bằng `lab8.runtime.run_react` với `max_steps=8`, giữ nguyên chữ ký `run_claim`. Shape đọc claim bằng `get_claim_view`; claim không tồn tại trả `failed`, thiếu `order_id` trả `needs_info` mà không gọi thêm tool nào. Shape không lấy mã đơn hay số ngày trễ từ ticket.
+
+**Ranh giới code và model.** Hàm `decide` đại diện cho model và chỉ được chọn tool đọc: lần đầu `lookup_order`, sau đó `compute_compensation` với order row vừa đọc, rồi trả `final`. `runtime.dispatch` từ chối `issue_refund` và `append_audit` bằng `ToolRejected`, nên model không có đường nào ghi tiền. Mỗi bước của vòng lặp là một model call MockLLM (`purpose="react"`), cộng một lần soạn phản hồi khách (`purpose="draft"`), đều được cộng vào `Budget`. Model không quyết định trạng thái hay số tiền. Quote do `compute_compensation` tính từ order row trong DB và policy hiện hành, nên ticket nói quá hoặc chèn lệnh không đổi được kết quả (C-002 bị `denied` ở cả 5 seed, kể cả seed 55 nơi swarm thua). Shape không gọi `lookup_refund_history`: host đã tự trừ phần đã hoàn theo đơn, gọi thêm chỉ tốn chi phí mà không đổi kết quả.
+
+**Ghi tiền.** Đơn không tìm thấy hoặc thuộc principal khác trả `escalated`. Quote bằng 0 trả `denied` và không gọi host. Quote dương được truyền **đầy đủ** vào `durability.issue_refund` kèm `crash_at`; host kiểm approval, áp trần theo đơn, tự trừ phần đã hoàn và giữ idempotency. Nếu shape tự trừ trước thì host trừ thêm lần nữa và T14 sai. Host từ chối trả `denied` với `proposal_amount` là quote đầy đủ (có audit `policy_denied`); xung đột amount trả `failed`; host chấp nhận trả `resolved`. `InjectedCrash` được ghi vào trace rồi ném lại, không bị nuốt, nên T12 thấy crash thật; lần chạy lại cùng store nhận `idempotent_replay` và ledger chỉ có một dòng. Chạm trần 8 bước trả `failed` với `error_reason="step_cap"`; lỗi tool khác trong vòng lặp cũng trả `failed` thay vì ném exception ra khỏi `run_claim`.
+
+**Trace.** Mọi nhánh return đi qua `common.finish()`, nên luôn có trace mới với `run_id` dạng `R-single-<claim>-s<seed>`. Các event gồm: `claim` (chỉ `has_order_id`), `observation` (order view đã qua allowlist của `lookup_order`), `quote`, `loop`, `decision` hoặc `host`, và `crash`/`error` khi có. Trace không chứa ticket, claim row thô, secret, header, SĐT, địa chỉ, ghi chú nội bộ hay tên hàng.
+
+**Kiểm thử.** `src/tests/test_team_single.py` có 19 ca: một `decide` không bao giờ trả `final` bị cắt đúng ở 8 bước (`step_cap`); 14 claim public đều chạy xong mà không chạm trần; chọn `issue_refund` hoặc `append_audit` bị `ToolRejected` và ledger không có dòng; ghi lại mọi tool mà shape gọi trên C-001 thì toàn bộ thuộc `READONLY_TOOLS` và refund do host ghi; trace đúng contract và không chứa `CANARY_SECRET`, `phone`, `address`, `internal_note`, `item_name`, `parent_secret`. Ma trận student của single đạt 62/62, gồm T11 (retry) và T12 (crash/resume). Đây là kiểm thử chức năng, chưa thay thế benchmark bốn shape hoặc kết quả hidden; số liệu cost của single nằm ở mục 4.
+
+**Giới hạn.** `decide` hiện là chính sách cố định chạy qua MockLLM, nên mọi seed cho cùng kết quả. Với model thật, single có thể chọn tool sai thứ tự hoặc dùng hết 8 bước; trường hợp đó shape trả `failed` chứ không ghi tiền, và host vẫn chặn mọi ghi sai.
 
 ### 3.3. Orchestrator — Nguyễn Việt Hưng
 
