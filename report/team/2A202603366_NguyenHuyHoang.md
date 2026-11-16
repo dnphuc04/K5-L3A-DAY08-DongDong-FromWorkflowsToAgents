@@ -60,4 +60,5 @@ Cách tự kiểm tra:
 
 - Hoàn thành đủ phần được giao trong `TEAM.md`: test an toàn ba shape, crash 20/20, benchmark bốn shape năm seed, ADR, research card, mục 4 và 7.
 - Điểm mạnh: test đối chiếu tác động thực ghi trong ledger/audit của bộ dữ liệu giả lập, có kiểm đột biến; số liệu báo cáo truy được về file report và run id.
-- Hạn chế: chưa tự kiểm được bộ hidden vì chưa có `student_drop/`; chưa test ghi đồng thời hai tiến trình; corpus public bão hòa nên kết luận chọn shape chủ yếu dựa vào cost và độ tự chủ.
+- Cập nhật tự kiểm: nhóm đã chạy `src/student_drop/` trên 40 claim không nhãn × 5 seed × 3 shape, tổng 600 trial. Không ghi nhận lỗi chạy, lỗi trace hoặc dấu hiệu rò rỉ trong phạm vi tự kiểm; kết quả lưu tại `src/reports/hidden_selfcheck.json`. Đây là kết quả kiểm tra chung của nhóm, không phải xác nhận cá nhân đã chạy lại trên máy riêng.
+- Hạn chế: bộ tự kiểm không có nhãn nên chưa tính được pass rate hidden; kết quả chính thức do giảng viên chấm. Chưa test ghi đồng thời hai tiến trình; corpus public bão hòa nên kết luận chọn shape chủ yếu dựa vào cost và độ tự chủ.
