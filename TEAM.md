@@ -49,7 +49,7 @@
 
 | Người | Vai | Commit | Test đã thêm hoặc sửa |
 | --- | --- | --- | --- |
-| Đồng Ngọc Phúc | Workflow + tích hợp | | |
+| Đồng Ngọc Phúc | Workflow + tích hợp | [dd59b0e — Completed CP2](https://github.com/dnphuc04/K5-L3A-DAY08-DongDong-FromWorkflowsToAgents/commit/dd59b0eef515dfabec26b271f743df483b00eb79) | `src/tests/test_team_workflow.py`: `test_workflow_uses_order_facts_not_ticket` (4 ca), `test_workflow_does_not_infer_missing_order_from_ticket`, `test_workflow_unknown_claim_returns_failed_trace`; 6 ca đạt; student workflow 62/62 đạt |
 | Nguyễn Trần Tiến | Single agent + ReAct | | |
 | Nguyễn Tiến Hưng | Orchestrator + handoff + trace | | |
 | Nguyễn Huy Hoàng | Kiểm thử an toàn + đánh giá | | |
