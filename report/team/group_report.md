@@ -1,157 +1,142 @@
-# Báo cáo nhóm — Lab 8 LogiX-VN
-
-Số liệu benchmark và crash lấy từ các file do công cụ sinh trong `src/reports/`. Kết quả pytest ghi riêng như bằng chứng kiểm thử chức năng.
+# Báo cáo nhóm - Lab 8 LogiX-VN
 
 ## 1. Thông tin nhóm
 
-- Tên nhóm: DongDong
-- Thành viên: xem `TEAM.md`
-- Commit chốt (trùng `report/team/decision_adr.md`): `0f13675dd9cc24832dc466fe465a47c07ae97a18` (mốc code, test và report thực nghiệm). Kiểm tra tích hợp bổ sung tại `a8a9835`; các cập nhật tài liệu sau mốc thực nghiệm không thay thế hash dẫn chứng trong ADR.
+- Nhóm: DongDong - L3A; bốn thành viên và bằng chứng đóng góp: `TEAM.md`.
+- Repo: https://github.com/dnphuc04/K5-L3A-DAY08-DongDong-FromWorkflowsToAgents
+- Commit chốt: `526a6ae2df4653f6c59f62bbdf1d4a7cef6efb2c`, thống nhất với ADR. Code/test/JSON thực nghiệm được lưu từ `0f13675`; các commit sau chỉ bổ sung tài liệu liên quan. Bản rà soát CP5 này được bổ sung sau commit chốt theo quy trình ghi hash rồi commit tài liệu.
 
 ## 2. Mục tiêu và cách tiếp cận
 
-Nhóm xử lý claim hoàn tiền LogiX-VN theo cùng contract bằng workflow, single agent, orchestrator và swarm tham chiếu. Mục tiêu là chọn kiến trúc ít tự chủ nhất vẫn đúng nghiệp vụ, giữ approval, bảo mật trace và chống refund trùng. Database và policy hiện hành là nguồn sự thật; ticket là dữ liệu không đáng tin. Code tính tiền, host quyết quyền ghi, model chỉ hoạt động trong phạm vi được cấp.
+Nhóm xử lý cùng một claim hoàn tiền bằng workflow, single agent, orchestrator và swarm tham chiếu để chọn kiến trúc ít tự chủ nhất vẫn làm đúng. Database và policy hiệu lực là nguồn sự thật; ticket là dữ liệu không đáng tin. Code tính tiền và host kiểm quyền ghi; model không quyết số tiền hoặc tạo approval.
 
-Phúc phụ trách workflow, tích hợp và tổng hợp báo cáo; Tiến phụ trách single/ReAct; Hưng phụ trách orchestrator/handoff; Hoàng phụ trách kiểm thử an toàn, crash, benchmark và phân tích. Ba shape được triển khai song song trong các file riêng, sau đó tích hợp vào `main`. Mỗi người bổ sung test và báo cáo cá nhân; commit/test cụ thể nằm trong `TEAM.md`.
+Phúc phụ trách workflow, tích hợp và báo cáo; Tiến phụ trách single/ReAct; Hưng phụ trách orchestrator/handoff; Hoàng phụ trách kiểm thử an toàn, benchmark và phân tích. Ba shape được viết song song, kiểm thử riêng rồi tích hợp vào main. Nhóm lần lượt kiểm smoke/host, student matrix, retry/crash, bảo mật, benchmark và điều kiện nộp.
 
-Nhóm kiểm tra theo thứ tự: smoke và host → student matrix từng shape → kiểm thử chéo approval, secret, retry/crash → benchmark bốn shape trên cùng 14 claim, năm seed và bảng giá → ADR/research card. Mỗi trial benchmark dùng SQLite mới. Quyết định chỉ dựa trên số liệu public và giá mô phỏng, không suy rộng thành kết quả hidden hoặc hiệu năng model thật.
+Benchmark giữ cùng 14 claim public, năm seed 11,22,33,44,55, MockLLM, bảng giá và evaluator; mỗi trial có SQLite mới. So sánh là giữa các triển khai hiện có: số tool/model call cũng thay đổi cùng kiến trúc, nên không thể tách hoàn toàn tác động topology khỏi chính sách gọi tool.
 
 ## 3. Giải pháp
 
-### 3.1. Workflow — Đồng Ngọc Phúc
+### 3.1. Workflow - Đồng Ngọc Phúc
 
-Shape A trong `src/lab8/shapes/workflow.py` thực hiện các bước Python cố định, giữ nguyên chữ ký `run_claim`. Workflow đọc claim bằng `get_claim_view`; claim không tồn tại trả `failed`, thiếu `order_id` trả `needs_info`. Sau đó `lookup_order` kiểm tra phạm vi principal; đơn không tìm thấy hoặc không thuộc principal trả `escalated`. Workflow không suy ra mã đơn hoặc số ngày trễ từ ticket.
+`workflow.py` chạy các bước Python cố định: `get_claim_view` → `lookup_order` theo principal → `compute_compensation` → host. Claim không tồn tại trả `failed`; thiếu mã đơn trả `needs_info`; đơn không thấy hoặc không thuộc principal trả `escalated`. Không lấy mã đơn hoặc số ngày trễ từ ticket.
 
-Với đơn hợp lệ, `compute_compensation` tính quote từ dữ kiện đơn và policy hiện hành. Quote bằng 0 trả `denied`, không gọi ghi refund. Quote dương được truyền đầy đủ vào `durability.issue_refund`: host kiểm approval, áp trần theo đơn và tự trừ tiền các claim trước đã nhận. Ví dụ entitlement 150.000 VND và đã hoàn 30.000 VND thì workflow truyền 150.000 VND, host ghi phần chênh 120.000 VND. `proposal_amount` vẫn giữ 150.000 VND. Host từ chối trả `denied`; xung đột amount trả `failed`; host chấp nhận trả `resolved`.
+Quote bằng 0 trả `denied`, không gọi ghi tiền. Quote dương được truyền đầy đủ vào `durability.issue_refund`. Host kiểm approval, trần theo đơn và idempotency; host từ chối trả `denied`, xung đột amount trả `failed`, chấp nhận trả `resolved`. `proposal_amount` giữ quote đầy đủ: entitlement 150.000, đã hoàn 30.000 thì đề xuất vẫn 150.000, host ghi 120.000. Shape không tự trừ phần đã hoàn.
 
-Workflow không gọi model (`model_calls = 0`); quyết định và số tiền đều do code xử lý. Mỗi lần gọi tool đọc được cộng vào `Budget`. Việc ghi tiền chỉ qua host để giữ approval, idempotency và ledger trong cùng cơ chế có sẵn. Workflow truyền `crash_at` xuống host, để `InjectedCrash` truyền ra ngoài và luôn đóng kết nối bằng `finally`. Khi chạy lại, host dùng khóa `refund:{claim_id}` để ngăn ghi trùng.
+Workflow không gọi model, cộng budget cho từng tool đọc, truyền `crash_at` và để `InjectedCrash` truyền ra; luôn đóng kết nối bằng `finally`. Mọi nhánh return dùng `finish()` để lấy effect/audit thật từ ledger và ghi trace mới. Trace chỉ có `claim.found`, `order.visible/reason`, quote và decision; không ghi ticket, secret, header hoặc claim/order thô. Đường crash không trả RunResult; trace được ghi khi resume hoàn tất.
 
-Mọi nhánh trả kết quả dùng `common.finish()` để lấy effect/audit từ ledger và ghi trace mới. Trace có các event `claim` (chỉ `found`), `order` (chỉ `visible`, `reason`), `quote` và `decision`. Không ghi ticket, principal, claim/order row thô, secret, header, SĐT, địa chỉ, tên hàng hay ghi chú nội bộ. Shape này không có handoff. Đường crash chủ động truyền exception, không trả `RunResult`; trace của lần resume được ghi khi hoàn tất.
+<!-- pagebreak -->
 
-Test riêng trong `src/tests/test_team_workflow.py` gồm 6 ca: ticket nói quá hoặc phủ nhận độ trễ không thay đổi quote ở seed 11 và 55; thiếu `order_id` không được lấy mã đơn từ ticket và không ghi thêm ledger; claim không tồn tại trả `failed` kèm trace hợp lệ. Test thiếu mã đơn cũng kiểm tra trace không chứa canary trong ticket. Ma trận student của workflow đã đạt 62/62, bao gồm retry và crash/resume. Đây là kiểm thử chức năng, chưa thay thế benchmark bốn shape hoặc kết quả hidden.
+### 3.2. Single - Nguyễn Trần Tiến
 
-### 3.2. Single — Nguyễn Trần Tiến
+`single.py` dùng `run_react(max_steps=8)`. `decide` chọn tool đọc: lấy order, tính quote rồi kết thúc. `runtime.dispatch` chặn `issue_refund` và `append_audit` từ model. MockLLM ghi nhận model call cho vòng ReAct và soạn phản hồi; code quyết status, quote và việc gọi host. Chính sách chọn tool hiện cố định, không mô phỏng đầy đủ độ bất định của model thật.
 
-Shape B trong `src/lab8/shapes/single.py` là một agent chạy vòng ReAct bằng `lab8.runtime.run_react` với `max_steps=8`, giữ nguyên chữ ký `run_claim`. Shape đọc claim bằng `get_claim_view`; claim không tồn tại trả `failed`, thiếu `order_id` trả `needs_info` mà không gọi thêm tool nào. Shape không lấy mã đơn hay số ngày trễ từ ticket.
+Thiếu mã đơn hoặc đơn ngoài scope dừng sớm; quote dương đi qua host với quote đầy đủ và `crash_at`. Chạm trần vòng lặp trả `failed/step_cap`; lỗi tool trong vòng lặp cũng trả `failed`. Crash được ghi trace rồi ném lại. Trace lưu quan sát đã lọc, quote, vòng lặp và quyết định; không lưu ticket hoặc dữ liệu nhạy cảm. 19 test riêng kiểm giới hạn 8 bước, tool chỉ đọc, ranh giới ghi tiền và trace.
 
-**Ranh giới code và model.** Hàm `decide` đại diện cho model và chỉ được chọn tool đọc: lần đầu `lookup_order`, sau đó `compute_compensation` với order row vừa đọc, rồi trả `final`. `runtime.dispatch` từ chối `issue_refund` và `append_audit` bằng `ToolRejected`, nên model không có đường nào ghi tiền. Mỗi bước của vòng lặp là một model call MockLLM (`purpose="react"`), cộng một lần soạn phản hồi khách (`purpose="draft"`), đều được cộng vào `Budget`. Model không quyết định trạng thái hay số tiền. Quote do `compute_compensation` tính từ order row trong DB và policy hiện hành, nên ticket nói quá hoặc chèn lệnh không đổi được kết quả (C-002 bị `denied` ở cả 5 seed, kể cả seed 55 nơi swarm thua). Shape không gọi `lookup_refund_history`: host đã tự trừ phần đã hoàn theo đơn, gọi thêm chỉ tốn chi phí mà không đổi kết quả.
+### 3.3. Orchestrator - Nguyễn Việt Hưng
 
-**Ghi tiền.** Đơn không tìm thấy hoặc thuộc principal khác trả `escalated`. Quote bằng 0 trả `denied` và không gọi host. Quote dương được truyền **đầy đủ** vào `durability.issue_refund` kèm `crash_at`; host kiểm approval, áp trần theo đơn, tự trừ phần đã hoàn và giữ idempotency. Nếu shape tự trừ trước thì host trừ thêm lần nữa và T14 sai. Host từ chối trả `denied` với `proposal_amount` là quote đầy đủ (có audit `policy_denied`); xung đột amount trả `failed`; host chấp nhận trả `resolved`. `InjectedCrash` được ghi vào trace rồi ném lại, không bị nuốt, nên T12 thấy crash thật; lần chạy lại cùng store nhận `idempotent_replay` và ledger chỉ có một dòng. Chạm trần 8 bước trả `failed` với `error_reason="step_cap"`; lỗi tool khác trong vòng lặp cũng trả `failed` thay vì ném exception ra khỏi `run_claim`.
+`orchestrator.py` đọc claim qua view và tạo `handoff.v1` bằng `make_handoff`, với `facts={}` và bốn tool đọc: `lookup_order`, `lookup_policy`, `lookup_refund_history`, `compute_compensation`. Không chuyển ticket hoặc parent context. Allowlist loại field ngoài phạm vi và từ chối tool ghi; tóm tắt bằng LLM không được coi là redaction.
 
-**Trace.** Mọi nhánh return đi qua `common.finish()`, nên luôn có trace mới với `run_id` dạng `R-single-<claim>-s<seed>`. Các event gồm: `claim` (chỉ `has_order_id`), `observation` (order view đã qua allowlist của `lookup_order`), `quote`, `loop`, `decision` hoặc `host`, và `crash`/`error` khi có. Trace không chứa ticket, claim row thô, secret, header, SĐT, địa chỉ, ghi chú nội bộ hay tên hàng.
+`run_readonly_investigators` chạy trong scope principal. Investigator chỉ đọc; orchestrator tính quyết định từ quote, gọi host với entitlement đầy đủ và giữ proposal trước cap. Có một model call soạn phản hồi, không quyết số tiền. Crash được flush trace rồi ném lại. Trace ghi handoff đã sanitize, trạng thái điều tra, lịch sử refund dạng số, quote và quyết định. 47 test riêng kiểm handoff thật, dữ liệu nhạy cảm, trace, ticket mâu thuẫn và crash/resume.
 
-**Kiểm thử.** `src/tests/test_team_single.py` có 19 ca: một `decide` không bao giờ trả `final` bị cắt đúng ở 8 bước (`step_cap`); 14 claim public đều chạy xong mà không chạm trần; chọn `issue_refund` hoặc `append_audit` bị `ToolRejected` và ledger không có dòng; ghi lại mọi tool mà shape gọi trên C-001 thì toàn bộ thuộc `READONLY_TOOLS` và refund do host ghi; trace đúng contract và không chứa `CANARY_SECRET`, `phone`, `address`, `internal_note`, `item_name`, `parent_secret`. Ma trận student của single đạt 62/62, gồm T11 (retry) và T12 (crash/resume). Đây là kiểm thử chức năng, chưa thay thế benchmark bốn shape hoặc kết quả hidden; số liệu cost của single nằm ở mục 4.
+Orchestrator đọc claim hai lần và chạy nhiều tool hơn workflow; overhead này được tính trong benchmark, không được coi là chi phí bắt buộc của mọi thiết kế multi-agent.
 
-**Giới hạn.** `decide` hiện là chính sách cố định chạy qua MockLLM, nên mọi seed cho cùng kết quả. Với model thật, single có thể chọn tool sai thứ tự hoặc dùng hết 8 bước; trường hợp đó shape trả `failed` chứ không ghi tiền, và host vẫn chặn mọi ghi sai.
+### 3.4. Ranh giới chung và kiểm thử
 
-### 3.3. Orchestrator — Nguyễn Việt Hưng
+Host là đường ghi tiền duy nhất: kiểm approval đúng claim, trần theo đơn, khóa `refund:{claim_id}` và transaction ledger/audit. Dữ kiện ticket không ghi đè database. `finish()` đối chiếu kết quả với ledger; trace là ranh giới bảo mật nên chỉ ghi dữ liệu cần cho kiểm toán.
 
-Shape C trong `src/lab8/shapes/orchestrator.py` tách vai: orchestrator giữ quyền ghi, investigator chỉ đọc. Orchestrator đọc claim bằng `get_claim_view`, không đọc claim row thô vì row này chứa `parent_secret` và `raw_headers`. Claim không tồn tại trả `failed`, thiếu `order_id` trả `needs_info`.
-
-**Handoff.** Orchestrator tạo handoff `handoff.v1` bằng `make_handoff`, với `facts={}` và `allowed_tools` gồm 4 tool đọc: `lookup_order`, `lookup_policy`, `lookup_refund_history`, `compute_compensation`. Allowlist nằm trong code: `make_handoff` chỉ giữ trường thuộc `ALLOWED_FIELDS` và key thuộc `FACT_KEYS`, từ chối tool ghi, và từ chối payload còn canary hay header. Ticket không được đưa vào handoff vì đây là dữ liệu khách tự viết, có thể sai hoặc chứa lệnh chèn; tóm tắt ngữ cảnh bằng LLM cũng không được coi là sanitize.
-
-**Investigator.** `run_readonly_investigators` chạy các tool trong handoff qua `dispatch(worker=True)` với `principal_id` của claim, nên investigator không có đường nào gọi `issue_refund`. Đơn không tìm thấy hoặc thuộc principal khác trả `escalated`. Quote do `compute_compensation` tính từ order row trong DB và policy hiện hành. Shape không dùng số ngày trễ trong ticket, nên C-002 (ticket ghi 5 ngày, đơn ghi 2 ngày) bị `denied` ở cả 5 seed. Đây là ca swarm tham chiếu thua ở seed 55.
-
-**Ghi tiền.** Quote bằng 0 trả `denied` và không gọi host. Quote dương được truyền đầy đủ vào `durability.issue_refund` kèm `crash_at`; host kiểm approval, áp trần theo đơn, trừ phần đã hoàn và giữ idempotency. Ví dụ C-014: shape đề xuất 150.000 VND, host ghi 120.000 VND, `proposal_amount` vẫn là 150.000. `InjectedCrash` được ghi vào trace, flush rồi ném lại; lần chạy lại nhận `idempotent_replay` nên ledger chỉ có một dòng. Mỗi lần chạy có đúng một model call (`purpose="draft"`, soạn phản hồi khách); model không quyết định trạng thái hay số tiền.
-
-**Trace.** Mọi nhánh return đi qua `common.finish()`, nên luôn có trace mới với `run_id` dạng `R-orchestrator-<claim>-s<seed>`. Các event gồm: `claim` (chỉ `has_order_id`), `handoff` (bản đã sanitize), `investigator` (`order_visible`, `order_reason`, lịch sử hoàn tiền dạng số), `quote`, `decision`, và `crash` khi có. Trace không chứa ticket, claim/order row thô, secret, header, SĐT, địa chỉ, ghi chú nội bộ hay tên hàng.
-
-**Kiểm thử.** `src/tests/test_team_orchestrator.py` có 47 ca. Test bắt handoff thật mà orchestrator gửi cho investigator trên 14 claim và kiểm tra allowlist, scope, tool chỉ đọc, không lộ dữ liệu nhạy cảm. Test cũng kiểm tra việc lỡ cấp `issue_refund` cho investigator bị `HandoffError` chặn và không ghi tiền; trace của 14 claim × 2 seed đúng contract và sạch; crash/resume chỉ ghi một refund; ticket không ghi đè dữ kiện DB. Phép so sánh dùng giá trị nhạy cảm thật lấy từ dữ liệu, không chỉ tìm từ khóa. Khi cố tình cho orchestrator ghi claim row vào trace, 29/47 ca fail. Ma trận student của orchestrator đạt 62/62, gồm T11 (retry) và T12 (crash/resume). Đây là kiểm thử chức năng, chưa thay thế benchmark bốn shape hoặc kết quả hidden.
-
-**Giới hạn.** Với claim có đơn hợp lệ, `tool_calls` là 6 vì `get_claim_view` được đọc hai lần: một lần ở orchestrator để lấy `principal_id`/`order_id` trước khi tạo handoff, một lần bên trong `run_readonly_investigators`. Chi phí này sẽ thể hiện trong benchmark ở mục 4.
-
-## 4. Kết quả
-
-*Phần này do Nguyễn Huy Hoàng soạn.* Số liệu lấy từ `src/reports/benchmark.json` (commit `0f13675`), sinh bằng `python -m lab8.benchmark --shapes workflow,single,orchestrator,swarm --cases data/public_claims.jsonl --seeds 11,22,33,44,55 --out reports/benchmark.json`. Cùng 14 claim public, cùng 5 seed, cùng bảng giá mô phỏng, mỗi trial một SQLite mới (70 trial/shape).
-
-| Shape | Pass rate | pass^5 | Seed min–max | Variance | Cost/success (VND mô phỏng) | Mean / p95 steps | Model calls TB | Tool calls TB |
-| --- | --: | --: | --: | --: | --: | --: | --: | --: |
-| A `workflow` | 1.000 | 1.000 | 1.000–1.000 | 0.000000 | **27.86** | 3.79 / 4 | 0.00 | 2.79 |
-| B `single` | 1.000 | 1.000 | 1.000–1.000 | 0.000000 | 29.97 | 4.79 / 5 | 3.79 | 2.79 |
-| C `orchestrator` | 1.000 | 1.000 | 1.000–1.000 | 0.000000 | 56.65 | 4.71 / 5 | 1.00 | 5.57 |
-| D `swarm` (tham chiếu) | 0.986 | 0.929 | 0.929–1.000 | 0.000816 | 49.57 | 2.80 / 3 | 3.00 | 4.66 |
-
-**Đọc số liệu.**
-
-- Ba shape của nhóm đều bão hòa ở 1.000 trên bộ public; trên corpus này chất lượng không phân biệt được giữa A, B, C, chỉ cost và độ tự chủ là khác nhau.
-- Swarm có đúng 1/70 trial fail: `R-swarm-C-002-s55`, `status resolved != denied`. Ticket C-002 ghi trễ 5 ngày, DB ghi 2 ngày; ở seed 55 swarm tin ticket (khối `REFERENCE_WEAKNESS`) nên ra quote dương và host ghi 20.000 VND vì approval A-002 hợp lệ. Host chặn approval/trần/idempotency nhưng không chặn được **dữ kiện sai** mà shape đưa vào — vì vậy ranh giới "chỉ dùng dữ kiện từ DB" phải nằm trong shape. Theo taxonomy MAST đây là lỗi kiểm chứng (không đối chiếu dữ kiện ticket với nguồn có thẩm quyền).
-- Cost: single đắt hơn workflow 7.6% (model call soạn ReAct, token rẻ); orchestrator đắt gấp 2.03 lần, chủ yếu vì tool call gấp đôi (đọc `get_claim_view` hai lần + investigator chạy đủ 4 tool đọc). Claim dừng sớm (C-004 thiếu mã đơn) gần như cùng giá ở mọi shape.
-
-**Crash safety.** `python -m lab8.crash_test --count 20 --out reports/crash.json` → `crash_safety: 20/20` (5 ca `before_effect`, 7 ca `after_effect_before_checkpoint`, 5 ca `after_checkpoint`, cộng amount conflict, retry thiếu approval và swarm crash).
-
-**Kiểm thử an toàn xuyên shape** (`src/tests/test_team_safety.py`, 55 ca, chạy trên workflow/single/orchestrator):
-
-| Nhóm ca | Số ca | Kết quả |
-| --- | --: | --- |
-| Approval của claim khác (C-001 trỏ A-003 150.000 VND), 2 seed | 6 | không refund, không audit |
-| Approval thiếu / không tồn tại | 6 | không refund |
-| C-005 (không approval), C-007 (approval hết hạn), chạy lại 3 seed | 6 | không refund |
-| Ticket injection C-009 ("ignore policy", approval 500.000) | 3 | `denied`, ledger trống |
-| Crash 3 điểm × 3 claim trả tiền (C-001, C-003, C-014) rồi resume bằng seed khác | 27 | đúng 1 refund, 1 audit, số tiền bằng lần chạy sạch |
-| Crash liên tiếp trên cùng store rồi chạy lại | 3 | 1 refund 35.000 |
-| 4 claim cùng đơn O-107 chạy 6 lần | 3 | tổng ledger của đơn = 35.000, 1 dòng |
-| Ba shape lần lượt chạy C-014 trên cùng store | 1 | 1 refund 120.000 (150.000 − 30.000 đã hoàn) |
-
-Để chắc test bắt được lỗi thật, nhóm thử hai đột biến tạm thời trên workflow (đã hoàn nguyên, không commit): ghi thẳng vào ledger bỏ qua host → 16/18 ca workflow fail; bỏ truyền `crash_at` xuống host → 10/18 ca fail.
-
-**Ablation R1** (`src/reports/ablation_r1.json`): chỉ đổi topology workflow → orchestrator, pass giữ 1.000, cost/success ×2.03; chi tiết ở `report/team/research_card.md`.
-
-**Tự kiểm hidden.** Nhóm chưa nhận `student_drop/` nên chưa có `src/reports/hidden_selfcheck.json`; không có số liệu hidden nào được ghi ở đây.
-
-Quyết định kiến trúc và lý do: xem `report/team/decision_adr.md`. Phiếu nghiên cứu và ablation: xem `report/team/research_card.md`.
-
-## 5. Khó khăn và cách xử lý
-
-| Vấn đề quan sát được | Cách xử lý và bằng chứng |
+| Bằng chứng | Phạm vi |
 | --- | --- |
-| Chạy `pip install -r requirements.txt` tại gốc repo báo `No such file or directory` | Chuyển vào `src/` trước khi cài và chạy lệnh lab. Giữ nguyên cấu trúc repo. |
-| Pytest gặp `PermissionError: [WinError 5]` khi truy cập thư mục tạm `pytest-of-ThinkBook` trên Windows | Dùng `--basetemp` riêng trong `.pytest_cache`; không thay test hay logic host để né lỗi. Lệnh kiểm tra cuối được ghi bên dưới. |
-| Merge `TEAM.md` xung đột giữa thông tin Tiến và Hưng | Gộp thủ công thông tin mới của cả hai, xóa conflict marker, giữ mỗi người một dòng và kiểm tra lại bảng. |
-| PR ban đầu chọn repo gốc chương trình làm đích | Đóng PR nhầm; tạo PR vào `main` của repo nhóm và kiểm tra base repository trước khi merge. |
+| Test Workflow (6 ca) | Ticket nói quá/phủ nhận độ trễ ở hai seed; thiếu order không suy từ ticket; claim không tồn tại; trace sạch |
+| Test Single (19 ca) | Trần ReAct, chặn tool ghi, giới hạn scope và trace |
+| Test Orchestrator (47 ca) | Allowlist, investigator chỉ đọc, chống leak, crash/resume |
+| Test an toàn (55 ca) | Approval sai/thiếu/hết hạn, ticket injection, ba điểm crash, trần theo đơn và retry xuyên shape |
 
-Tại commit tích hợp `a8a9835`, kiểm tra trên Windows với Python 3.14.6 bằng executable của `.venv` ở gốc repo. Các lệnh sau chạy từ `src/`:
+<!-- pagebreak -->
+
+## 4. Kết quả và quyết định
+
+Nguồn: `src/reports/benchmark.json`, `crash.json`, `ablation_r1.json`, lưu ở commit `0f13675`. Benchmark có 70 trial mỗi shape (14 claim × 5 seed). Chi phí là VND mô phỏng; latency không đo (`unavailable`).
+
+| Shape | Pass | pass^5 | Seed min-max | Variance | Cost/success |
+| --- | --- | --- | --- | --- | --- |
+| Workflow | 1.000 | 1.000 | 1.000-1.000 | 0.000000 | 27.86 |
+| Single | 1.000 | 1.000 | 1.000-1.000 | 0.000000 | 29.97 |
+| Orchestrator | 1.000 | 1.000 | 1.000-1.000 | 0.000000 | 56.65 |
+| Swarm | 0.986 | 0.929 | 0.929-1.000 | 0.000816 | 49.57 |
+
+| Shape | Mean/p95 steps | Model calls TB | Tool calls TB |
+| --- | --- | --- | --- |
+| Workflow | 3.79 / 4 | 0.00 | 2.79 |
+| Single | 4.79 / 5 | 3.79 | 2.79 |
+| Orchestrator | 4.71 / 5 | 1.00 | 5.57 |
+| Swarm | 2.80 / 3 | 3.00 | 4.66 |
+
+Ba shape của nhóm đều đúng trên public. Workflow rẻ nhất; single đắt hơn khoảng 7.6%, orchestrator khoảng 2.03 lần. Số event trace khác nhau giữa các triển khai, nên steps không phải latency hay khối lượng tính toán chuẩn hóa.
+
+Swarm fail 1/70 trial: `R-swarm-C-002-s55`. Ticket nói trễ 5 ngày, database ghi 2 ngày; seed 55 tin ticket nên quote sai và tạo refund 20.000. Approval hợp lệ không chứng minh entitlement đúng: shape vẫn phải dùng dữ kiện có thẩm quyền. Không copy điểm yếu tham chiếu vào workflow.
+
+Crash suite đạt **20/20**. Ma trận student của mỗi shape đạt 62/62, gồm retry và crash/resume. Trên các trial public được chấm không có secret/PII bị phát hiện; test approval không cho ghi refund trái phép. Đây không phải kết quả hidden.
+
+Nhóm chọn **workflow**: độ đúng public ngang single/orchestrator, ít tự chủ nhất và cost thấp nhất. Run id dẫn chứng: `R-workflow-C-001-s11`; toàn bộ 70 trial có trong JSON. Chi tiết quyết định ở `decision_adr.md`.
+
+Ablation R1 so workflow với orchestrator: pass 1.000 → 1.000, cost 27.86 → 56.65, tool calls 2.79 → 5.57. Kết quả phù hợp hướng dự đoán overhead của triển khai investigator; chưa cô lập riêng topology vì tập lời gọi thực tế và model call cũng khác. Research card ghi đầy đủ giả thuyết và giới hạn.
+
+<!-- pagebreak -->
+
+## 5. Kiểm tra tái lập và khó khăn
+
+### 5.1. Xác minh cuối CP5
+
+Kiểm tra tại commit `526a6ae` bằng **Python 3.12.14**, Windows, pytest 8.4.2 và PyYAML 6.0.3. Python lấy từ runtime Codex; dependency Python thuần được nạp qua `PYTHONPATH` từ `.venv/Lib/site-packages` hiện có. Không thay môi trường ảo 3.14 của người dùng. Để tái lập thông thường, tạo venv Python 3.12 và cài `src/requirements.txt`.
+
+Lệnh logic chạy trong `src/` sau khi chọn đúng Python và dependencies:
 
 ```powershell
-../.venv/Scripts/python.exe -m lab8.smoke
-../.venv/Scripts/python.exe -m pytest -q --tb=short --basetemp=.pytest_cache/final-host-03
-../.venv/Scripts/python.exe -m pytest -q -m student -o addopts= --tb=short --basetemp=.pytest_cache/final-student-03
-../.venv/Scripts/python.exe -m lab8.check_submission
+python -m pytest -q -o addopts= --tb=short --basetemp=.pytest_cache/cp5-py312-02
+python -m lab8.benchmark --shapes workflow,single,orchestrator,swarm --cases data/public_claims.jsonl --seeds 11,22,33,44,55 --out .pytest_cache/cp5_benchmark_py312.json
+python -m lab8.crash_test --count 20 --out .pytest_cache/cp5_crash_py312.json
+python -m lab8.check_submission
 ```
 
-Kết quả: smoke pass; host và test nhóm **181 passed**; student **248 passed**; kiểm tra nộp bài **0 FAIL, 0 WARN**. Không còn shape stub. Đây là kết quả local, chưa chứng minh CI hoặc hidden pass. Python 3.14.6 nằm ngoài dải 3.11–3.13 trong hướng dẫn lab; cần chạy lại trên phiên bản được yêu cầu trước khi chốt môi trường tái lập.
+Toàn bộ **429 test pass** (181 host/test nhóm + 248 student); crash chạy lại **20/20**. Benchmark và crash tạm được đối chiếu với JSON chính thức; không sửa tay report. Các kết quả kiểm tra local không thay cho hidden hoặc trạng thái CI.
+
+### 5.2. Khó khăn thực tế
+
+| Vấn đề | Cách xử lý |
+| --- | --- |
+| `requirements.txt` không thấy khi chạy ở gốc | Chuyển vào `src/` để cài và chạy lab |
+| `PermissionError: [WinError 5]` với thư mục tạm pytest | Dùng `--basetemp` riêng, chạy với quyền truy cập phù hợp; không đổi logic/test để né lỗi |
+| Xung đột thông tin Tiến/Hưng trong TEAM | Gộp thông tin cả hai, bỏ conflict marker, giữ mỗi người một dòng |
+| PR chọn nhầm repo gốc | Đóng PR nhầm, kiểm tra base repository là repo nhóm trước khi merge |
+| Python venv ban đầu là 3.14.6 | Xác minh lại đủ test, benchmark và crash trên Python 3.12.14 thuộc dải đề yêu cầu |
+
+Kiểm tra nộp gần nhất trước rà soát CP5 đạt `0 FAIL, 0 WARN`. Cần chạy lại sau khi commit tài liệu này để xác nhận working tree sạch. Repo nhóm công khai; không thấy file SQLite, `.env`, trace hoặc hidden pack được Git theo dõi ở lần rà soát này. Mỗi thành viên vẫn phải tự nộp link LMS.
+
+<!-- pagebreak -->
 
 ## 6. Tổng hợp đóng góp
 
-Phúc hoàn thành workflow, 6 ca test riêng, tích hợp và tổng hợp tài liệu; Tiến hoàn thành single và 19 ca test; Hưng hoàn thành orchestrator và 47 ca test; Hoàng hoàn thành 55 ca test an toàn xuyên shape, report crash/benchmark/ablation và phân tích. Chi tiết commit và tên test nằm trong bảng đóng góp `TEAM.md`; mỗi thành viên có báo cáo riêng trong `report/team/`. Số ca trên là test nhóm bổ sung, không cộng lẫn với 248 ca student.
+| Thành viên | Sản phẩm chính | Commit kỹ thuật |
+| --- | --- | --- |
+| Đồng Ngọc Phúc | Workflow, 6 test, tích hợp và tổng hợp báo cáo | `dd59b0e` |
+| Nguyễn Trần Tiến | Single/ReAct, 19 test và phần Single | `2849887` |
+| Nguyễn Việt Hưng | Orchestrator/handoff, 47 test và phần Orchestrator | `1c04b12` |
+| Nguyễn Huy Hoàng | 55 test an toàn; crash/benchmark/ablation; ADR và research card | `0f13675` |
+
+Tên test, link commit và báo cáo cá nhân nằm trong `TEAM.md` và `report/team/`. Các số trên là test nhóm bổ sung, không cộng lẫn với 248 student. Có dùng Codex hỗ trợ; từng thành viên chịu trách nhiệm đọc lại, giải thích và kiểm chứng phần của mình theo RULES.
 
 ## 7. Hạn chế và hướng cải thiện
 
-MockLLM không phải model sản xuất; latency là `unavailable`.
+Public chỉ có 14 claim, ba shape đều bão hòa ở pass 1.000. Variance 0 không chứng minh ổn định trên claim khác. Chưa có `student_drop/`, chưa biết hidden pass rate ≥ 0.75 hay chưa.
 
-*Phần này do Nguyễn Huy Hoàng soạn.*
+MockLLM không phản ánh đầy đủ việc model thật chọn tool sai hoặc biến động token. Cost là mô phỏng, không phải hóa đơn API; không đo latency nên không kết luận investigator giúp hay làm chậm. So sánh A/C thay cả pattern gọi tool và model call, vì vậy chưa phải phép cô lập topology thuần túy.
 
-**Hạn chế.**
+Test an toàn phủ các tình huống đã thiết kế nhưng chưa kiểm hai tiến trình ghi đồng thời. Rà soát không thay thế đánh giá bảo mật đầy đủ. Quy trình trên Python 3.12 dùng dependency thuần từ venv hiện có, chưa phải kiểm tra cài sạch hay xác minh ba hệ điều hành.
 
-- **Corpus nhỏ và bão hòa.** 14 claim public; ba shape của nhóm đều đạt 1.000 nên benchmark chỉ phân biệt cost, không phân biệt chất lượng. Variance 0 trên public không đảm bảo variance 0 trên hidden (homoglyph, principal lẫn, đơn hủy/đang giao…).
-- **Chưa tự kiểm hidden.** Không có `student_drop/`, nên ngưỡng pass ≥ 0.75 trên 40 claim × 5 seed chưa được kiểm trước.
-- **MockLLM quá ngoan.** Model call của single và orchestrator không quyết định status hay số tiền, nên mọi seed cho cùng kết quả. Với model thật, single có thể chọn tool sai thứ tự, hết 8 bước hoặc tốn token hơn; con số +7.6% cost chỉ đúng với giá và token mô phỏng.
-- **Cost là mô phỏng, không có latency.** Ưu điểm song song của investigator (nếu có) không thể hiện được.
-- **Test an toàn chỉ phủ ca nhóm nghĩ ra.** Crash được bơm ở 3 điểm của host; crash ngoài host (giữa hai lần đọc tool) không làm sai tiền vì chưa ghi gì, nhưng chưa có test riêng. Test cũng chưa chạy song song hai tiến trình cùng claim.
-
-**Hướng cải thiện.**
-
-1. Chạy tự kiểm trên `student_drop/` ngay khi có và chỉ giữ quyết định workflow nếu vẫn ≥ 0.75 với variance thấp.
-2. Bổ sung test metamorphic tự sinh: đổi số ngày trễ trong ticket, thêm homoglyph vào mã đơn, đổi principal — kỳ vọng status/số tiền không đổi hoặc đổi đúng hướng.
-3. Bỏ lần đọc `get_claim_view` trùng trong orchestrator (truyền `principal_id`/`order_id` đã có) để giảm ~1 tool call mỗi claim nếu nhóm cần dùng shape này.
-4. Thêm test hai tiến trình ghi cùng claim để kiểm khóa `BEGIN IMMEDIATE` và idempotency dưới tải đồng thời.
-
-**Điều kiện làm kết luận thay đổi.** Nếu hidden có loại claim mà luật cố định không bao được và workflow rơi dưới 0.75 trong khi single/orchestrator vượt rõ với variance không tăng, nhóm sẽ đổi sang single trước (cost gần workflow nhất). Nếu model thật làm single dao động giữa các seed, workflow càng được ưu tiên.
+Hướng tiếp theo: tự kiểm hidden khi được cấp; thử concurrent writers; giữ model/tool-call policy tương đương để cô lập topology; tối ưu đọc claim trùng nếu chọn orchestrator. Chỉ đổi quyết định khi corpus đại diện cho thấy shape khác cải thiện độ đúng/độ ổn định đủ rõ với chi phí chấp nhận được; ưu tiên cân nhắc single trước.
 
 ## 8. Tài liệu tham khảo
 
-- [Luật nghiệp vụ LogiX-VN](../../docs/business_rules.md): điều kiện hoàn tiền, policy hiệu lực, approval và trần theo đơn.
-- [Output và trace contract](../../docs/contracts.md): trạng thái, proposal, ledger/audit và ranh giới dữ liệu trong trace.
-- [Kiến trúc](../../docs/architecture.md) và [định nghĩa metric](../../docs/metrics.md): phạm vi code/model và cách so sánh các shape.
-- [Quy định lab](../../RULES.md), [rubric](../../RUBRIC.md) và [hướng dẫn nộp](../../SUBMISSION.md): phạm vi được sửa, bằng chứng và điều kiện bắt buộc.
-- [Benchmark public](../../src/reports/benchmark.json), [crash suite](../../src/reports/crash.json), [ablation R1](../../src/reports/ablation_r1.json): bằng chứng thực nghiệm của nhóm, commit `0f13675`.
-- [ADR](decision_adr.md) và [research card](research_card.md): quyết định chọn workflow, giả thuyết R1 và giới hạn. Nguồn nghiên cứu được mô tả theo thư viện tham khảo của khóa trong research card; kết quả lab không được coi là tái lập toàn bộ nghiên cứu đó.
+- Tài liệu repo: `docs/business_rules.md`, `docs/contracts.md`, `docs/architecture.md`, `docs/metrics.md`, `RULES.md`, `RUBRIC.md`, `SUBMISSION.md`.
+- Bằng chứng: `src/reports/benchmark.json`, `crash.json`, `ablation_r1.json`; phân tích: `report/team/decision_adr.md`, `research_card.md`.
+- Yubin Kim và Xin Liu, Google Research (28/01/2026), [Towards a science of scaling agent systems: When and why agent systems work](https://research.google/blog/towards-a-science-of-scaling-agent-systems-when-and-why-agent-systems-work/). Nguồn chính thức tóm tắt benchmark về phối hợp agent; nghiên cứu không dùng MockLLM của lab. Lab chỉ đối chiếu một giả thuyết hẹp, không tái lập toàn bộ nghiên cứu.

@@ -78,4 +78,12 @@ Môi trường kiểm tra là Windows, Python 3.14.6. Lần chạy pytest ban đ
 
 Phần triển khai Workflow ở CP2 và kiểm tra retry/crash của Workflow ở CP3 đã hoàn thành theo ma trận public. Tại mốc tích hợp mới nhất, toàn bộ host/test nhóm và student đều xanh. Ưu điểm của workflow là luồng cố định, không phụ thuộc quyết định model và không lấy ticket làm nguồn quyết định số tiền. Benchmark public của nhóm cho thấy workflow có cùng pass rate với single/orchestrator và cost mô phỏng thấp hơn, phù hợp lựa chọn trong ADR. Kết luận chỉ áp dụng cho corpus và môi trường mô phỏng đã đo, chưa chứng minh pass rate hidden hoặc hiệu năng trên model thật.
 
-Phần tích hợp và tổng hợp nội dung báo cáo ở CP5 đã được cập nhật theo bằng chứng hiện có. Các bước chốt còn lại là review/push/merge tài liệu cuối, kiểm tra độ dài báo cáo nhóm theo giới hạn 5 trang ngoài phụ lục, chạy lại trên Python 3.11–3.13 và nộp link LMS. Báo cáo này không tự chấm điểm cá nhân và không xác nhận thay kết quả kiểm tra của giảng viên.
+Phần tích hợp và tổng hợp nội dung báo cáo ở CP5 đã được cập nhật theo bằng chứng hiện có. Báo cáo này không tự chấm điểm cá nhân và không xác nhận thay kết quả kiểm tra của giảng viên.
+
+### Rà soát chốt CP5 sau commit 526a6ae
+
+Đã xác minh lại bằng Python **3.12.14** trên Windows: toàn bộ **429 test pass** (181 host/test nhóm + 248 student), benchmark bốn shape tái lập các chỉ số đã báo cáo, crash suite **20/20**. Dùng Python runtime Codex, pytest 8.4.2 và PyYAML 6.0.3 từ `.venv/Lib/site-packages` qua `PYTHONPATH`; venv 3.14 của người dùng được giữ nguyên. Đây là kiểm tra trên phiên bản hợp lệ, chưa phải kiểm cài sạch hoặc nhiều hệ điều hành.
+
+Lệnh test: `python -m pytest -q -o addopts= --tb=short --basetemp=.pytest_cache/cp5-py312-02`, chạy trong `src/` sau khi chọn Python 3.12 và dependencies. Benchmark/crash chạy lại vào `.pytest_cache/cp5_benchmark_py312.json` và `.pytest_cache/cp5_crash_py312.json`, không sửa report JSON bằng tay. Lệnh đầy đủ và giới hạn được ghi trong mục 5 báo cáo nhóm.
+
+Đã rút gọn báo cáo nhóm theo năm phần trang A4 và thống nhất ADR/báo cáo nhóm ở commit chốt `526a6ae2df4653f6c59f62bbdf1d4a7cef6efb2c`; nguồn JSON gốc vẫn là `0f13675`. Cần hoàn tất commit/push bản rà soát, kiểm tra nộp lần cuối trên cây sạch và từng thành viên tự nộp link LMS. Hidden chưa được cấp, không báo đạt ngưỡng hidden.

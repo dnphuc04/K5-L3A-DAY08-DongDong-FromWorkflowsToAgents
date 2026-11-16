@@ -6,6 +6,7 @@
 - Lớp: L3A
 - Repo nhóm: `K5-L3A-DAY08-DongDong-FromWorkflowsToAgents` (xem [SUBMISSION.md](SUBMISSION.md))
 - URL repo, nhánh nộp, commit chốt: https://github.com/dnphuc04/K5-L3A-DAY08-DongDong-FromWorkflowsToAgents
+- Nhánh nộp: `main`; commit dẫn chứng thống nhất ADR: `526a6ae2df4653f6c59f62bbdf1d4a7cef6efb2c`. Bản rà soát CP5 được bổ sung bằng commit tài liệu tiếp theo; JSON thực nghiệm gốc ở `0f13675`.
 
 ## Thành viên
 
@@ -14,7 +15,7 @@
 |   1 |    Đồng Ngọc Phúc    |  2A202603399    |    dnphuc04@gmail.com   |    dnphuc04    | Workflow + tích hợp + chốt bài nộp |
 |   2 |   Nguyễn Trần Tiến     |   2A202603504   |    nguyentien2004abc@gmail.com   |    tiennguyen-ctrl    | Single agent + ReAct + budget |
 |   3 |   Nguyễn Việt Hưng    |   2A202603411   | robinnguyen2004@gmail.com      | robinnguyen2004       | Orchestrator + handoff + trace an toàn |
-|   4 |    Nguyễn Huy Hoàng    |  2A202603366    |       |        | Kiểm thử policy/durability + benchmark + đánh giá |
+|   4 |    Nguyễn Huy Hoàng    |  2A202603366    | nguyenhuyhoangtuho@gmail.com | nguyen-huy-hoang-1708 | Kiểm thử policy/durability + benchmark + đánh giá |
 
 ## Phân công thực hiện
 

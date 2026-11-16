@@ -19,7 +19,7 @@ Ranh giới code và model trong shape này:
 
 ## 3. Đóng góp cụ thể
 
-Commit chính (hash): _chưa commit, điền hash sau khi commit và push._
+Commit chính: [2849887 — feat(single): implement ReAct single-agent shape with team tests](https://github.com/dnphuc04/K5-L3A-DAY08-DongDong-FromWorkflowsToAgents/commit/2849887c98cb43ccb5ecee4666855c8902785bf1).
 
 Code và test đã viết:
 
@@ -41,7 +41,7 @@ Quyết định kỹ thuật:
 - Không gọi `lookup_refund_history`: host đã tự trừ phần đã hoàn theo đơn (T13, T14), gọi thêm chỉ tốn chi phí mà không đổi kết quả.
 - Dùng MockLLM `complete()` cho mỗi bước `decide` và một lần soạn phản hồi `draft`, để chi phí so sánh được với các shape khác.
 
-Giới hạn: chưa có số benchmark và chưa có crash suite 20/20 cho `single`. Hai phần đó do Hoàng chạy ở CP4 và CP5, nên báo cáo này không ghi số nào ngoài các kết quả bên dưới.
+Ở mốc triển khai cá nhân chưa có benchmark/crash suite chung. Cập nhật tích hợp CP5: Hoàng đã cung cấp `src/reports/benchmark.json` và `crash.json` tại `0f13675`; single đạt 70/70 trial public, cost/success mô phỏng 29.97 VND. Nhóm rà soát lại trên Python 3.12.14: 429 test pass và crash suite 20/20. Đây là bằng chứng nhóm, không phải xác nhận cá nhân đã tự chạy lại trên máy riêng.
 
 ## 4. Bằng chứng
 
@@ -53,7 +53,7 @@ Kết quả đã chạy trên máy (Python 3.13.12, Windows) trong thư mục `s
 - `python -m pytest -q` (cổng host): 73 passed, 248 deselected, không có `failed`.
 - Run id của `single` có dạng `R-single-<claim>-s<seed>`, ví dụ `R-single-C-001-s11` (sinh ra khi chạy `test_team_single.py`).
 
-Link commit: _điền sau khi commit và push._
+Link commit: [2849887](https://github.com/dnphuc04/K5-L3A-DAY08-DongDong-FromWorkflowsToAgents/commit/2849887c98cb43ccb5ecee4666855c8902785bf1).
 
 ## 5. Công cụ AI đã dùng
 
@@ -67,5 +67,5 @@ Link commit: _điền sau khi commit và push._
 ## 6. Tự đánh giá
 
 - **Đã làm được:** hoàn thiện `src/lab8/shapes/single.py` với vòng ReAct tối đa 8 bước; phân định rõ code (tính tiền, quyết trạng thái, ghi refund) và model (chỉ chọn tool đọc); viết 19 test trong `test_team_single.py`; đạt 62/62 test student.
-- **Còn thiếu:** chưa chạy crash suite 20/20 và benchmark cho `single` (phần của Hoàng ở CP4, CP5); chưa điền hash commit vào mục 3 và 4.
+- **Cập nhật chốt CP5:** hash đã bổ sung từ lịch sử Git; benchmark/crash đã có bằng chứng nhóm như mục 3. Hidden chưa được kiểm và mỗi thành viên vẫn phải tự nộp link LMS.
 - **Khó khăn và cách xử lý:** lệnh `-k single` theo hướng dẫn khớp cả tên hàm `test_public_single_run_cases` nên kéo theo test của workflow và orchestrator, làm kết quả bị lẫn. Tôi xử lý bằng cách lọc dòng `FAILED` theo `single\]` để chỉ xem shape của mình.
