@@ -81,4 +81,7 @@ C-014 cho thấy shape truyền quote đầy đủ 150.000 VND, còn host trừ 
 
 ## 6. Tự đánh giá
 
+- **Đã làm được:** hoàn thiện `src/lab8/shapes/orchestrator.py`, đạt 62/62 test student (gồm T11 retry và T12 crash/resume). Shape giữ được hai ranh giới mà phần việc yêu cầu: investigator chỉ có tool đọc, còn handoff và trace chỉ chứa dữ liệu đã qua allowlist. Vì quote luôn tính từ order row trong DB, orchestrator xử lý đúng C-002 ở cả 5 seed, ca mà swarm tham chiếu thua ở seed 55. Viết 47 test trong `test_team_orchestrator.py` và kiểm tra ngược: khi cố tình cho orchestrator ghi claim row vào trace, 29 ca fail. Như vậy test bắt được lỗi rò rỉ thật, không chỉ pass cho có.
+- **Còn thiếu:** Mỗi claim có đơn hợp lệ tốn 6 tool call vì `get_claim_view` bị đọc hai lần; tôi mới ghi nhận điểm này chứ chưa tối ưu. Cần tự đọc kỹ thêm `durability.issue_refund` và `policy.authorize` để giải thích chắc chắn cách host áp trần theo đơn.
+
 
