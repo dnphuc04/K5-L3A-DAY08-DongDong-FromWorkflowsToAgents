@@ -4,8 +4,8 @@
 
 - Họ tên: Nguyễn Huy Hoàng
 - MSSV: 2A202603366
-- Email:
-- GitHub:
+- Email: nguyenhuyhoangtuho@gmail.com   
+- GitHub: nguyen-huy-hoang-1708
 
 ## 2. Phần việc phụ trách
 
