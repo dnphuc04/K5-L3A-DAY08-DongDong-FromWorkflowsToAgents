@@ -57,10 +57,15 @@ Link commit: _điền sau khi commit và push._
 
 ## 5. Công cụ AI đã dùng
 
-- **Claude Code (Claude Sonnet 5.5)** trong VS Code: đọc repo và đề bài, giải thích luật nghiệp vụ và contract, viết bản đầu của `single.py` và `test_team_single.py`, chạy test và đọc kết quả.
-- **Cách tự kiểm tra:** chạy lại các lệnh ở mục 4 trên máy mình và đối chiếu với kỳ vọng trong `CHECKPOINTS.md` (62 test student của `single` xanh, cổng host xanh); đối chiếu hành vi từng nhánh với `docs/business_rules.md` và `docs/contracts.md`; không sửa `metrics.py`, `durability.py`, `policy.py`, `config/`, `data/`.
-- _Tiến bổ sung: những phần bạn đã tự đọc hiểu và tự giải thích được (vì sao truyền quote đầy đủ, vì sao không bắt `InjectedCrash`, vì sao trace không ghi ticket và claim row)._
+- **Claude Code (Claude Sonnet 5.5)** trong VS Code: đọc repo và luật nghiệp vụ, viết bản đầu của `single.py` và `test_team_single.py`, chạy test.
+- **Tự kiểm tra:** chạy lại test (`single` đạt 62/62 test student), đối chiếu với `docs/business_rules.md` và `docs/contracts.md`; không sửa các file thước đo (`metrics.py`, `durability.py`, `policy.py`, `config/`, `data/`).
+- **Điểm kỹ thuật cốt lõi:**
+  - *Truyền quote đầy đủ:* host tự trừ phần đã hoàn theo đơn, kiểm approval và đảm bảo idempotency. Nếu shape tự trừ trước thì host trừ thêm lần nữa và T14 sai.
+  - *Không bắt `InjectedCrash`:* T12 kiểm crash có thật sự xảy ra. Ngoại lệ được ghi vào trace rồi ném lại, đi qua `finally` của `run_claim` để đóng kết nối DB. Chạy lại cùng DB sau đó vẫn chỉ ra một refund nhờ ledger.
+  - *Trace an toàn:* chỉ ghi field đã qua allowlist, không ghi ticket, claim row hay order row thô (có SĐT, địa chỉ, ghi chú nội bộ).
 
 ## 6. Tự đánh giá
 
-_Phần này Tiến tự viết theo nhận định của mình (đã làm được gì, còn thiếu gì, khó khăn gặp phải). Không điền thay._
+- **Đã làm được:** hoàn thiện `src/lab8/shapes/single.py` với vòng ReAct tối đa 8 bước; phân định rõ code (tính tiền, quyết trạng thái, ghi refund) và model (chỉ chọn tool đọc); viết 19 test trong `test_team_single.py`; đạt 62/62 test student.
+- **Còn thiếu:** chưa chạy crash suite 20/20 và benchmark cho `single` (phần của Hoàng ở CP4, CP5); chưa điền hash commit vào mục 3 và 4.
+- **Khó khăn và cách xử lý:** lệnh `-k single` theo hướng dẫn khớp cả tên hàm `test_public_single_run_cases` nên kéo theo test của workflow và orchestrator, làm kết quả bị lẫn. Tôi xử lý bằng cách lọc dòng `FAILED` theo `single\]` để chỉ xem shape của mình.
