@@ -10,80 +10,47 @@
 
 ## 2. Phần việc phụ trách
 
-Phụ trách shape A Workflow, test tương ứng, phối hợp tích hợp code và tổng hợp báo cáo/chốt bài nộp. Đã hoàn thành workflow, test riêng, phần Workflow trong báo cáo nhóm, bằng chứng đóng góp và kiểm tra tích hợp sau khi đủ ba shape. Đã bổ sung các mục tổng quan, khó khăn, tài liệu tham khảo và kết quả kiểm tra mới vào báo cáo nhóm. Việc push/merge cập nhật tài liệu cuối, xác minh môi trường Python theo yêu cầu và nộp LMS là các bước chốt còn lại; không coi là đã nộp bài.
+Phụ trách Workflow, kiểm thử tương ứng, tích hợp các shape và tổng hợp báo cáo nhóm. Đã hoàn thành code, test, bằng chứng đóng góp và rà soát CP5. Các thay đổi đã được đưa lên `main`; việc nộp link LMS do từng thành viên thực hiện và chưa được xác nhận trong báo cáo này.
 
 ## 3. Đóng góp cụ thể
 
-Commit kỹ thuật: [dd59b0e — Completed CP2](https://github.com/dnphuc04/K5-L3A-DAY08-DongDong-FromWorkflowsToAgents/commit/dd59b0eef515dfabec26b271f743df483b00eb79), gồm `src/lab8/shapes/workflow.py` và `src/tests/test_team_workflow.py`.
+Commit triển khai: [dd59b0e — Completed CP2](https://github.com/dnphuc04/K5-L3A-DAY08-DongDong-FromWorkflowsToAgents/commit/dd59b0eef515dfabec26b271f743df483b00eb79), gồm `src/lab8/shapes/workflow.py` và `src/tests/test_team_workflow.py`.
 
-- Thay stub Workflow bằng luồng cố định: đọc claim, kiểm tra mã đơn và quyền xem đơn, tính quote, gọi host và trả kết quả theo contract.
-- Dùng dữ kiện đơn và `compute_compensation` để quyết số tiền; không gọi model hoặc tin lệnh/số ngày ghi trong ticket.
-- Truyền quote đầy đủ cho host. Không tự trừ số tiền đã hoàn vì host áp trần theo đơn; tự trừ trước có thể khiến phần chênh bị trừ hai lần.
-- Giữ `proposal_amount` là quote ngay cả khi host cap số tiền thực ghi hoặc từ chối. Dùng `finish()` để lấy effect và audit từ ledger.
-- Truyền `crash_at` và để `InjectedCrash` truyền ra ngoài; đóng kết nối bằng `finally`. Cơ chế chống refund trùng do host/ledger đảm nhiệm.
-- Chỉ ghi trace tối thiểu: kết quả tìm claim, quyền xem đơn, quote và quyết định. Không ghi ticket hoặc dữ liệu thô chứa thông tin nhạy cảm.
-- Bổ sung 6 ca test hồi quy và phần mô tả Workflow trong báo cáo nhóm; điền bằng chứng đóng góp trong `TEAM.md`.
+Workflow chạy các bước cố định: đọc claim, kiểm tra mã đơn và quyền xem đơn, tính quote từ dữ kiện đơn rồi gọi host. Model không tham gia quyết định; ticket không được dùng để thay đổi mã đơn, độ trễ hoặc số tiền.
 
-## 4. Bằng chứng
+Shape truyền quote đầy đủ cho `durability.issue_refund`. Host tự kiểm approval, áp trần theo đơn và trừ số tiền các claim trước đã nhận. Ví dụ entitlement 150.000 VND, đã hoàn 30.000 VND thì proposal vẫn là 150.000 VND và host chỉ ghi thêm 120.000 VND. Nếu shape tự trừ trước, host sẽ trừ lần nữa và cho kết quả sai.
 
-Test đã thêm trong `src/tests/test_team_workflow.py`:
+Mọi nhánh return dùng `finish()` để lấy effect/audit từ ledger và ghi trace mới. Trace chỉ lưu kết quả tìm claim, quyền xem đơn, quote và quyết định; không lưu ticket, secret hoặc dữ liệu nhạy cảm trong bản ghi thô. Shape truyền `crash_at`, để `InjectedCrash` truyền ra ngoài và đóng kết nối bằng `finally`; host/ledger bảo đảm retry không ghi refund trùng.
 
-| Test | Hành vi được kiểm tra |
+Ngoài phần code, đã tổng hợp nội dung báo cáo nhóm, điền bằng chứng trong `TEAM.md`, rà lại ADR/research card và kiểm tra tích hợp sau khi đủ ba shape. Bản rà soát CP5 được lưu ở commit `b26d3c9`.
+
+## 4. Bằng chứng kiểm thử
+
+| Test trong `test_team_workflow.py` | Hành vi kiểm tra |
 | --- | --- |
-| `test_workflow_uses_order_facts_not_ticket` | 4 ca: ticket phóng đại/phủ nhận độ trễ tại seed 11 và 55; trạng thái, quote, effect và audit theo dữ kiện đơn; không gọi model |
-| `test_workflow_does_not_infer_missing_order_from_ticket` | Thiếu mã đơn có cấu trúc vẫn trả `needs_info` dù ticket ghi mã đơn; tổng ledger không đổi; trace đúng run id và không chứa canary/ticket |
-| `test_workflow_unknown_claim_returns_failed_trace` | Claim không tồn tại trả `failed`, không có effect, có trace đúng run id |
+| `test_workflow_uses_order_facts_not_ticket` | 4 ca: ticket phóng đại hoặc phủ nhận độ trễ ở seed 11 và 55; kết quả vẫn theo dữ kiện đơn, không gọi model |
+| `test_workflow_does_not_infer_missing_order_from_ticket` | Thiếu mã đơn có cấu trúc vẫn trả `needs_info`, không thêm ledger; trace đúng run id và không chứa ticket/canary |
+| `test_workflow_unknown_claim_returns_failed_trace` | Claim không tồn tại trả `failed`, không có effect và có trace đúng run id |
 
-Kiểm tra đã thực hiện với hỗ trợ Codex, mọi lệnh chạy từ `src/`:
+Khi hoàn thành Workflow: 6 ca riêng và 62 ca student của workflow đều đạt, gồm T11 retry và T12 crash/resume. Sau khi tích hợp đủ các shape, nhóm kiểm tra trên Windows/Python **3.12.14**: toàn bộ **429 test pass** (181 host/test nhóm + 248 student), smoke pass và crash suite **20/20**. `check_submission` sau commit `b26d3c9` đạt **0 FAIL, 0 WARN**.
 
-```powershell
-python -m pytest -q -m student -o addopts= -k workflow --tb=short --basetemp=.pytest_cache/phuc-workflow-01
-python -m pytest -q --tb=short --basetemp=.pytest_cache/phuc-host-01
-```
-
-Kết quả khi hoàn thành workflow: student workflow **62 passed**; host và 6 ca mới **60 passed**. Ma trận workflow có kiểm tra T11 gọi lại và T12 crash/resume.
-
-Sau khi merge Single vào `main`, tại commit `3108b05590af2c851467a93a781f73ec78fb3612`, chạy smoke, host và toàn bộ student suite:
+Lệnh kiểm tra đầy đủ, chạy trong `src/` sau khi chọn Python và dependencies:
 
 ```powershell
-python -m lab8.smoke
-python -m pytest -q --tb=short --basetemp=.pytest_cache/merged-host-02
-python -m pytest -q -m student -o addopts= --tb=no -rN --basetemp=.pytest_cache/merged-student-02
+python -m pytest -q -o addopts= --tb=short --basetemp=.pytest_cache/cp5-py312-02
+python -m lab8.check_submission
 ```
 
-Smoke pass; host và test nhóm **79 passed**; student **186 passed, 62 failed**. Workflow, Single và Swarm đạt; Orchestrator còn stub. Đây là mốc kiểm tra sau merge, không phải xác nhận toàn bộ bài đã hoàn thành. Các lệnh thực tế dùng trực tiếp executable `../.venv/Scripts/python.exe`, tương đương `python` khi kích hoạt đúng môi trường.
+Lần xác minh Python 3.12 dùng runtime Codex, pytest 8.4.2 và PyYAML 6.0.3 được nạp từ `.venv/Lib/site-packages` qua `PYTHONPATH`. Môi trường ảo Python 3.14 của người dùng được giữ nguyên; đây chưa phải kiểm thử cài sạch hoặc đa nền tảng. Lỗi quyền thư mục tạm ban đầu được xử lý bằng `--basetemp` riêng và quyền truy cập phù hợp.
 
-### Kiểm tra tích hợp mới nhất
-
-Tại commit `a8a9835`, Orchestrator đã hoàn thành và đủ báo cáo/test của bốn thành viên. Các lệnh thực tế chạy từ `src/`:
-
-```powershell
-../.venv/Scripts/python.exe -m lab8.smoke
-../.venv/Scripts/python.exe -m pytest -q --tb=short --basetemp=.pytest_cache/final-host-03
-../.venv/Scripts/python.exe -m pytest -q -m student -o addopts= --tb=short --basetemp=.pytest_cache/final-student-03
-../.venv/Scripts/python.exe -m lab8.check_submission
-```
-
-Kết quả: smoke pass; host và test nhóm **181 passed**; student toàn bộ **248 passed** (62 ca mỗi shape); `check_submission` **0 FAIL, 0 WARN**. Mốc này cập nhật kết quả tích hợp mới nhất; các kết quả 60/79 và 186 pass/62 fail phía trên được giữ như lịch sử từng giai đoạn.
-
-Đối chiếu `src/reports/benchmark.json` và ADR do Hoàng cung cấp ở commit `0f13675`: workflow đạt 70/70 trial public, pass rate và pass^5 đều 1.000, variance 0, cost/success mô phỏng 27.857142857 VND (làm tròn 27.86), không gọi model. Run id ví dụ: `R-workflow-C-001-s11`. `src/reports/crash.json` ghi 20/20. Đây là bằng chứng thực nghiệm của nhóm đã được kiểm tra cấu trúc bởi `check_submission`, không phải benchmark được cá nhân chạy lại trong lần kiểm tra tích hợp này. Chưa có kết quả hidden; không khẳng định đã đạt ngưỡng hidden.
-
-Môi trường kiểm tra là Windows, Python 3.14.6. Lần chạy pytest ban đầu gặp `PermissionError` với thư mục tạm mặc định; dùng `--basetemp` riêng trong `.pytest_cache` đã chạy được. Cần xác minh lại trên Python 3.11–3.13 theo yêu cầu lab. Không có kết quả CI được xác minh trong lần kiểm tra local này.
+Benchmark do Hoàng tạo ở `0f13675` được chạy lại trên Python 3.12 vào file tạm. Các chỉ số theo shape và biến kiểm soát trùng report chính thức; crash report chạy lại cũng trùng. Workflow đạt 70/70 trial public, pass rate/pass^5 1.000, variance 0 và cost/success mô phỏng 27.86 VND. Run id ví dụ: `R-workflow-C-001-s11`. Chưa có kết quả hidden.
 
 ## 5. Công cụ AI đã dùng
 
-Đã dùng OpenAI Codex để đọc đề và contract, hỗ trợ triển khai workflow/test, chạy kiểm thử, kiểm tra lịch sử commit và soạn báo cáo. Các khẳng định về hành vi được đối chiếu bằng test tự động, ledger/audit trong bộ test và source code. Commit được lấy từ lịch sử Git; không tự đặt hash, run id hoặc số liệu benchmark. Thành viên cần tự đọc lại code, chạy lại các lệnh trên và giải thích được quote đầy đủ, ranh giới host và các field bị loại khỏi trace khi bảo vệ bài.
+Sử dụng OpenAI Codex để đọc contract, hỗ trợ viết Workflow/test, chạy kiểm thử, đối chiếu Git và biên tập báo cáo. Hành vi được kiểm chứng bằng test, ledger/audit và source code; hash lấy từ lịch sử Git, số liệu benchmark lấy từ JSON do công cụ sinh. Không sửa tay JSON hoặc các file thước đo. Những kết quả chạy với hỗ trợ Codex được ghi rõ là kết quả kiểm tra trên workspace, không thay cho việc thành viên tự giải thích code khi bảo vệ bài.
 
 ## 6. Tự đánh giá
 
-Phần triển khai Workflow ở CP2 và kiểm tra retry/crash của Workflow ở CP3 đã hoàn thành theo ma trận public. Tại mốc tích hợp mới nhất, toàn bộ host/test nhóm và student đều xanh. Ưu điểm của workflow là luồng cố định, không phụ thuộc quyết định model và không lấy ticket làm nguồn quyết định số tiền. Benchmark public của nhóm cho thấy workflow có cùng pass rate với single/orchestrator và cost mô phỏng thấp hơn, phù hợp lựa chọn trong ADR. Kết luận chỉ áp dụng cho corpus và môi trường mô phỏng đã đo, chưa chứng minh pass rate hidden hoặc hiệu năng trên model thật.
+Đã hoàn thành Workflow ở CP2, kiểm tra retry/crash ở CP3 và phần tích hợp/tổng hợp báo cáo ở CP5. Workflow đáp ứng luật trên public, không phụ thuộc quyết định model và có cost mô phỏng thấp nhất trong các shape được đo. Kết quả này hỗ trợ lựa chọn Workflow trong ADR nhưng chưa chứng minh độ đúng trên hidden hoặc hiệu năng khi dùng model thật.
 
-Phần tích hợp và tổng hợp nội dung báo cáo ở CP5 đã được cập nhật theo bằng chứng hiện có. Báo cáo này không tự chấm điểm cá nhân và không xác nhận thay kết quả kiểm tra của giảng viên.
-
-### Rà soát chốt CP5 sau commit 526a6ae
-
-Đã xác minh lại bằng Python **3.12.14** trên Windows: toàn bộ **429 test pass** (181 host/test nhóm + 248 student), benchmark bốn shape tái lập các chỉ số đã báo cáo, crash suite **20/20**. Dùng Python runtime Codex, pytest 8.4.2 và PyYAML 6.0.3 từ `.venv/Lib/site-packages` qua `PYTHONPATH`; venv 3.14 của người dùng được giữ nguyên. Đây là kiểm tra trên phiên bản hợp lệ, chưa phải kiểm cài sạch hoặc nhiều hệ điều hành.
-
-Lệnh test: `python -m pytest -q -o addopts= --tb=short --basetemp=.pytest_cache/cp5-py312-02`, chạy trong `src/` sau khi chọn Python 3.12 và dependencies. Benchmark/crash chạy lại vào `.pytest_cache/cp5_benchmark_py312.json` và `.pytest_cache/cp5_crash_py312.json`, không sửa report JSON bằng tay. Lệnh đầy đủ và giới hạn được ghi trong mục 5 báo cáo nhóm.
-
-Đã rút gọn báo cáo nhóm theo năm phần trang A4 và thống nhất ADR/báo cáo nhóm ở commit chốt `526a6ae2df4653f6c59f62bbdf1d4a7cef6efb2c`; nguồn JSON gốc vẫn là `0f13675`. Cần hoàn tất commit/push bản rà soát, kiểm tra nộp lần cuối trên cây sạch và từng thành viên tự nộp link LMS. Hidden chưa được cấp, không báo đạt ngưỡng hidden.
+Báo cáo nhóm đã được xuất và kiểm tra dưới dạng PDF 5 trang A4. Commit dẫn chứng `526a6ae` thống nhất giữa ADR, báo cáo nhóm và TEAM; JSON thực nghiệm gốc ở `0f13675`, các cập nhật rà soát được bổ sung sau đó. Trạng thái nộp LMS không nằm trong bằng chứng kỹ thuật đã kiểm tra.

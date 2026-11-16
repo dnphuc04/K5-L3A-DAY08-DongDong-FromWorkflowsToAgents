@@ -4,7 +4,7 @@
 
 - Nhóm: DongDong - L3A; bốn thành viên và bằng chứng đóng góp: `TEAM.md`.
 - Repo: https://github.com/dnphuc04/K5-L3A-DAY08-DongDong-FromWorkflowsToAgents
-- Commit chốt: `526a6ae2df4653f6c59f62bbdf1d4a7cef6efb2c`, thống nhất với ADR. Code/test/JSON thực nghiệm được lưu từ `0f13675`; các commit sau chỉ bổ sung tài liệu liên quan. Bản rà soát CP5 này được bổ sung sau commit chốt theo quy trình ghi hash rồi commit tài liệu.
+- Commit chốt: `526a6ae2df4653f6c59f62bbdf1d4a7cef6efb2c`, thống nhất với ADR. Code, test và JSON thực nghiệm có ở `0f13675`; bản tổng hợp báo cáo có ở commit chốt, các cập nhật biên tập được bổ sung sau đó. Bản rà soát CP5 này được bổ sung sau commit chốt theo quy trình ghi hash rồi commit tài liệu.
 
 ## 2. Mục tiêu và cách tiếp cận
 
@@ -22,7 +22,7 @@ Benchmark giữ cùng 14 claim public, năm seed 11,22,33,44,55, MockLLM, bảng
 
 Quote bằng 0 trả `denied`, không gọi ghi tiền. Quote dương được truyền đầy đủ vào `durability.issue_refund`. Host kiểm approval, trần theo đơn và idempotency; host từ chối trả `denied`, xung đột amount trả `failed`, chấp nhận trả `resolved`. `proposal_amount` giữ quote đầy đủ: entitlement 150.000, đã hoàn 30.000 thì đề xuất vẫn 150.000, host ghi 120.000. Shape không tự trừ phần đã hoàn.
 
-Workflow không gọi model, cộng budget cho từng tool đọc, truyền `crash_at` và để `InjectedCrash` truyền ra; luôn đóng kết nối bằng `finally`. Mọi nhánh return dùng `finish()` để lấy effect/audit thật từ ledger và ghi trace mới. Trace chỉ có `claim.found`, `order.visible/reason`, quote và decision; không ghi ticket, secret, header hoặc claim/order thô. Đường crash không trả RunResult; trace được ghi khi resume hoàn tất.
+Workflow không gọi model, cộng budget cho từng tool đọc, truyền `crash_at` và để `InjectedCrash` truyền ra; luôn đóng kết nối bằng `finally`. Mọi nhánh return dùng `finish()` để lấy effect/audit thật từ ledger và ghi trace mới. Trace chỉ có `claim.found`, `order.visible/reason`, quote và decision; không ghi ticket, secret, header hoặc bản ghi claim/order thô. Đường crash không trả RunResult; trace được ghi khi resume hoàn tất.
 
 <!-- pagebreak -->
 
@@ -110,7 +110,7 @@ Toàn bộ **429 test pass** (181 host/test nhóm + 248 student); crash chạy l
 | PR chọn nhầm repo gốc | Đóng PR nhầm, kiểm tra base repository là repo nhóm trước khi merge |
 | Python venv ban đầu là 3.14.6 | Xác minh lại đủ test, benchmark và crash trên Python 3.12.14 thuộc dải đề yêu cầu |
 
-Kiểm tra nộp gần nhất trước rà soát CP5 đạt `0 FAIL, 0 WARN`. Cần chạy lại sau khi commit tài liệu này để xác nhận working tree sạch. Repo nhóm công khai; không thấy file SQLite, `.env`, trace hoặc hidden pack được Git theo dõi ở lần rà soát này. Mỗi thành viên vẫn phải tự nộp link LMS.
+Sau commit rà soát CP5 `b26d3c9`, kiểm tra nộp bài đạt `0 FAIL, 0 WARN` và working tree sạch. Repo nhóm công khai; không thấy file SQLite, `.env`, trace hoặc hidden pack được Git theo dõi ở lần rà soát này. Mỗi thành viên vẫn phải tự nộp link LMS.
 
 <!-- pagebreak -->
 

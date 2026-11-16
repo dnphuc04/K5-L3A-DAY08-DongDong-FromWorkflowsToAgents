@@ -19,7 +19,7 @@
 
 ## Phân công thực hiện
 
-Đây là kế hoạch phân công, chưa phải xác nhận công việc đã hoàn thành. Mỗi người tự bổ sung commit và bằng chứng thật sau khi làm xong; không dùng chung một commit để thay cho đóng góp cá nhân.
+Bảng sau ghi phạm vi đã phân công. Trạng thái bàn giao được đối chiếu bằng commit, test trong bảng đóng góp và báo cáo cá nhân; kết quả tích hợp cuối được tổng hợp trong báo cáo nhóm.
 
 | Thành viên | Phần việc chính | Test cần thêm hoặc sửa | Sản phẩm và tiêu chí bàn giao |
 | --- | --- | --- | --- |
@@ -30,7 +30,7 @@
 
 ### Thứ tự phối hợp
 
-1. **CP1:** Phúc kiểm tra smoke và host test; cả bốn đọc business rules/contract, tự cài môi trường. Hoàng bổ sung MSSV; các thành viên bổ sung thông tin liên hệ còn thiếu.
+1. **CP1:** Phúc kiểm tra smoke và host test; cả bốn đọc business rules/contract, tự cài môi trường. Thông tin thành viên được tổng hợp trong bảng trên.
 2. **CP2:** Phúc, Tiến, Hưng triển khai ba shape trong ba file riêng. Hoàng chuẩn bị test an toàn và lệnh đánh giá; không sửa host, policy, dữ liệu hay config.
 3. **CP3:** Mỗi chủ shape xử lý idempotency/crash của shape mình. Hưng kiểm tra handoff/trace; Hoàng kiểm thử chéo. Phúc tích hợp và chạy lại cổng host.
 4. **CP4:** Hoàng chạy crash suite và kiểm approval/secret; lỗi thuộc shape nào giao chủ shape đó sửa. Chỉ bàn giao khi test liên quan xanh.
@@ -39,14 +39,14 @@
 ### Quy ước bàn giao
 
 - Mọi lệnh Python chạy trong `src/`. Mỗi chủ shape chạy `python -m pytest -q -m student -o addopts= -k <shape>` trước khi bàn giao; khi tích hợp chạy toàn bộ student suite và `python -m pytest -q`.
-- Test nhóm bổ sung phải kiểm tra hành vi hoặc ranh giới an toàn có ý nghĩa, không đổi nhãn/thước đo để test xanh. Tên file test trên là kế hoạch, chỉ ghi vào bảng đóng góp khi thực sự đã tạo và chạy.
+- Test nhóm bổ sung phải kiểm tra hành vi hoặc ranh giới an toàn có ý nghĩa, không đổi nhãn/thước đo để test xanh. Các file test đã bàn giao và kết quả tương ứng được ghi trong bảng đóng góp.
 - Không sửa `metrics.py`, `durability.py`, `policy.py`, `src/config/*.yaml`, `src/data/*`; không sửa tay JSON report. Báo lỗi host cho cả nhóm thay vì tự sửa thước đo.
 - Mỗi người có commit kỹ thuật, ít nhất một test đã thêm hoặc sửa, và báo cáo cá nhân theo mẫu `report/team/MSSV_HoTen.md`. Không ghi trước kết quả, run id hoặc hash chưa có.
 - Phúc điều phối bài nộp chung; từng thành viên tự nộp link repo lên LMS.
 
 ## Bảng đóng góp
 
-`python -m lab8.check_submission` đọc bảng này bằng máy: giữ nguyên tiêu đề `## Bảng đóng góp` và các cột. Mỗi người một dòng: commit có nội dung và ít nhất một test đã thêm hoặc sửa.
+Mỗi dòng dưới đây liên kết phần việc với commit kỹ thuật và test đã bổ sung. Bảng được `lab8.check_submission` dùng để kiểm tra cấu trúc bài nộp.
 
 | Người | Vai | Commit | Test đã thêm hoặc sửa |
 | --- | --- | --- | --- |
@@ -55,28 +55,9 @@
 | Nguyễn Việt Hưng | Orchestrator + handoff + trace | [1c04b12 — Update orchestrator](https://github.com/dnphuc04/K5-L3A-DAY08-DongDong-FromWorkflowsToAgents/commit/1c04b121fb71ba5aa18fff0da21cacec817b3a45) | `src/tests/test_team_orchestrator.py`: handoff thật chỉ có allowlist + tool đọc, không lộ secret/PII (14 claim); cấp `issue_refund` cho investigator bị `HandoffError` chặn; trace đúng contract và sạch (14 claim × 2 seed); crash/resume chỉ 1 refund; ticket không ghi đè DB (C-002, 5 seed); 47 ca đạt; student orchestrator 62/62 đạt |
 | Nguyễn Huy Hoàng | Kiểm thử an toàn + đánh giá | [0f13675 — cross-shape safety suite + crash/benchmark/ablation reports](https://github.com/dnphuc04/K5-L3A-DAY08-DongDong-FromWorkflowsToAgents/commit/0f13675dd9cc24832dc466fe465a47c07ae97a18) | `src/tests/test_team_safety.py` (55 ca, chạy trên workflow/single/orchestrator): approval của claim khác / thiếu / hết hạn không refund; ticket injection C-009 bị `denied`; crash 3 điểm × 3 claim rồi resume bằng seed khác chỉ 1 refund + 1 audit; 4 claim cùng đơn O-107 tổng ≤ 35.000; 3 shape cùng store chạy C-014 chỉ 1 refund; kiểm đột biến 16/18 và 10/18 ca fail; `crash.json` 20/20, `benchmark.json` 4 shape × 14 claim × 5 seed |
 
-## Cá nhân
+## Báo cáo cá nhân
 
-Mỗi thành viên đồng thời tạo một báo cáo riêng trong `report/` theo dạng:
-
-```text
-report/team/MSSV_HoTen.md
-```
-
-Ví dụ: `report/team/20241234_NguyenVanAn.md`.
-
-Sao chép mục dưới đây cho từng thành viên.
-
-## MSSV_HoTen
-
-### Phần việc phụ trách
-
--
-
-### Đóng góp cụ thể
-
--
-
-### Bằng chứng
-
--
+- [Đồng Ngọc Phúc](report/team/2A202603399_DongNgocPhuc.md)
+- [Nguyễn Trần Tiến](report/team/2A202603504_NguyenTranTien.md)
+- [Nguyễn Việt Hưng](report/team/2A202603411_NguyenVietHung.md)
+- [Nguyễn Huy Hoàng](report/team/2A202603366_NguyenHuyHoang.md)

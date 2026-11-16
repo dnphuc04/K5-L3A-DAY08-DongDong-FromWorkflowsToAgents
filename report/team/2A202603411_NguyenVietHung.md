@@ -50,7 +50,7 @@ Quyết định kỹ thuật:
 Giới hạn đã biết:
 
 - `tool_calls` là 6 với claim có đơn hợp lệ, vì orchestrator đọc `get_claim_view` một lần và `run_readonly_investigators` đọc lại một lần nữa. Lần đọc đầu cần để biết `principal_id` và `order_id` trước khi tạo handoff.
-- Chưa có số benchmark và crash suite 20/20 cho orchestrator. Hai phần đó do Hoàng chạy ở CP4 và CP5, nên báo cáo này không ghi số nào ngoài kết quả ở mục 4.
+- Benchmark và crash suite của nhóm đã được Hoàng bổ sung tại `0f13675`: orchestrator đạt 70/70 trial public, cost/success mô phỏng 56.65 VND; crash suite đạt 20/20. Lần rà soát tích hợp trên Python 3.12.14 xác nhận 429 test pass và tái lập các chỉ số benchmark. Đây là kết quả nhóm, phân biệt với lần chạy cá nhân ở mục 4.
 
 ## 4. Bằng chứng
 
@@ -81,7 +81,5 @@ C-014 cho thấy shape truyền quote đầy đủ 150.000 VND, còn host trừ 
 
 ## 6. Tự đánh giá
 
-- **Đã làm được:** hoàn thiện `src/lab8/shapes/orchestrator.py`, đạt 62/62 test student (gồm T11 retry và T12 crash/resume). Shape giữ được hai ranh giới mà phần việc yêu cầu: investigator chỉ có tool đọc, còn handoff và trace chỉ chứa dữ liệu đã qua allowlist. Vì quote luôn tính từ order row trong DB, orchestrator xử lý đúng C-002 ở cả 5 seed, ca mà swarm tham chiếu thua ở seed 55. Viết 47 test trong `test_team_orchestrator.py` và kiểm tra ngược: khi cố tình cho orchestrator ghi claim row vào trace, 29 ca fail. Như vậy test bắt được lỗi rò rỉ thật, không chỉ pass cho có.
-- **Còn thiếu:** Mỗi claim có đơn hợp lệ tốn 6 tool call vì `get_claim_view` bị đọc hai lần; tôi mới ghi nhận điểm này chứ chưa tối ưu. Cần tự đọc kỹ thêm `durability.issue_refund` và `policy.authorize` để giải thích chắc chắn cách host áp trần theo đơn.
-
-
+- **Đã làm được:** hoàn thiện `src/lab8/shapes/orchestrator.py`, đạt 62/62 test student (gồm T11 retry và T12 crash/resume). Shape giữ được hai ranh giới mà phần việc yêu cầu: investigator chỉ có tool đọc, còn handoff và trace chỉ chứa dữ liệu đã qua allowlist. Vì quote luôn tính từ order row trong DB, orchestrator xử lý đúng C-002 ở cả 5 seed, ca mà swarm tham chiếu thua ở seed 55. Viết 47 test trong `test_team_orchestrator.py` và kiểm tra ngược: khi cố tình cho orchestrator ghi claim row vào trace, 29 ca fail. Kết quả cho thấy bộ test phát hiện được lỗi rò rỉ được chủ động đưa vào để kiểm chứng.
+- **Hạn chế và hướng cải thiện:** Mỗi claim có đơn hợp lệ tốn 6 tool call vì `get_claim_view` bị đọc hai lần; chi phí đọc trùng đã được ghi nhận nhưng chưa tối ưu. Cần tự đọc kỹ thêm `durability.issue_refund` và `policy.authorize` để giải thích chắc chắn cách host áp trần theo đơn.

@@ -13,8 +13,8 @@ Shape B `single` (một agent ReAct): file `src/lab8/shapes/single.py`, cùng te
 
 Ranh giới code và model trong shape này:
 
-- **Model** (`decide`, qua MockLLM) chỉ chọn tool đọc: `lookup_order`, rồi `compute_compensation`. Mỗi bước tính một model call vào `Budget`.
-- **Code** quyết mọi thứ có hậu quả: số tiền do `compute_compensation` tính, trạng thái (`needs_info`, `escalated`, `denied`, `resolved`, `failed`), và việc ghi refund. Ghi refund chỉ đi qua `durability.issue_refund`, `runtime.dispatch` từ chối tool ghi.
+- **Chọn tool:** `decide` hiện là chính sách cố định, chọn `lookup_order` rồi `compute_compensation`; mỗi bước ghi nhận một lời gọi MockLLM vào `Budget`. Model không sinh quyết định tool động trong triển khai này.
+- **Code** quyết trạng thái và thao tác ghi tiền: số tiền do `compute_compensation` tính, trạng thái (`needs_info`, `escalated`, `denied`, `resolved`, `failed`), và việc ghi refund. Ghi refund chỉ đi qua `durability.issue_refund`, `runtime.dispatch` từ chối tool ghi.
 - Số ngày trễ luôn lấy từ order row, không đọc số trong ticket, nên ticket nói quá hoặc chèn lệnh không đổi được quote.
 
 ## 3. Đóng góp cụ thể
@@ -61,7 +61,7 @@ Link commit: [2849887](https://github.com/dnphuc04/K5-L3A-DAY08-DongDong-FromWor
 - **Tự kiểm tra:** chạy lại test (`single` đạt 62/62 test student), đối chiếu với `docs/business_rules.md` và `docs/contracts.md`; không sửa các file thước đo (`metrics.py`, `durability.py`, `policy.py`, `config/`, `data/`).
 - **Điểm kỹ thuật cốt lõi:**
   - *Truyền quote đầy đủ:* host tự trừ phần đã hoàn theo đơn, kiểm approval và đảm bảo idempotency. Nếu shape tự trừ trước thì host trừ thêm lần nữa và T14 sai.
-  - *Không bắt `InjectedCrash`:* T12 kiểm crash có thật sự xảy ra. Ngoại lệ được ghi vào trace rồi ném lại, đi qua `finally` của `run_claim` để đóng kết nối DB. Chạy lại cùng DB sau đó vẫn chỉ ra một refund nhờ ledger.
+  - *Không nuốt `InjectedCrash`:* T12 kiểm crash có thật sự xảy ra. Ngoại lệ được ghi vào trace rồi ném lại, đi qua `finally` của `run_claim` để đóng kết nối DB. Chạy lại cùng DB sau đó vẫn chỉ ra một refund nhờ ledger.
   - *Trace an toàn:* chỉ ghi field đã qua allowlist, không ghi ticket, claim row hay order row thô (có SĐT, địa chỉ, ghi chú nội bộ).
 
 ## 6. Tự đánh giá
