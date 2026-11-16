@@ -14,7 +14,7 @@
 |   1 |    Đồng Ngọc Phúc    |  2A202603399    |    dnphuc04@gmail.com   |    dnphuc04    | Workflow + tích hợp + chốt bài nộp |
 |   2 |   Nguyễn Trần Tiến     |   2A202603504   |    nguyentien2004abc@gmail.com   |    tiennguyen-ctrl    | Single agent + ReAct + budget |
 |   3 |   Nguyễn Việt Hưng    |   2A202603411   | robinnguyen2004@gmail.com      | robinnguyen2004       | Orchestrator + handoff + trace an toàn |
-|   4 |    Nguyễn Huy Hoàng    |      |       |        | Kiểm thử policy/durability + benchmark + đánh giá |
+|   4 |    Nguyễn Huy Hoàng    |  2A202603366    |       |        | Kiểm thử policy/durability + benchmark + đánh giá |
 
 ## Phân công thực hiện
 
@@ -52,7 +52,7 @@
 | Đồng Ngọc Phúc | Workflow + tích hợp | [dd59b0e — Completed CP2](https://github.com/dnphuc04/K5-L3A-DAY08-DongDong-FromWorkflowsToAgents/commit/dd59b0eef515dfabec26b271f743df483b00eb79) | `src/tests/test_team_workflow.py`: `test_workflow_uses_order_facts_not_ticket` (4 ca), `test_workflow_does_not_infer_missing_order_from_ticket`, `test_workflow_unknown_claim_returns_failed_trace`; 6 ca đạt; student workflow 62/62 đạt |
 | Nguyễn Trần Tiến | Single agent + ReAct | | |
 | Nguyễn Việt Hưng | Orchestrator + handoff + trace | [1c04b12 — Update orchestrator](https://github.com/dnphuc04/K5-L3A-DAY08-DongDong-FromWorkflowsToAgents/commit/1c04b121fb71ba5aa18fff0da21cacec817b3a45) | `src/tests/test_team_orchestrator.py`: handoff thật chỉ có allowlist + tool đọc, không lộ secret/PII (14 claim); cấp `issue_refund` cho investigator bị `HandoffError` chặn; trace đúng contract và sạch (14 claim × 2 seed); crash/resume chỉ 1 refund; ticket không ghi đè DB (C-002, 5 seed); 47 ca đạt; student orchestrator 62/62 đạt |
-| Nguyễn Huy Hoàng | Kiểm thử an toàn + đánh giá | | |
+| Nguyễn Huy Hoàng | Kiểm thử an toàn + đánh giá | [0f13675 — cross-shape safety suite + crash/benchmark/ablation reports](https://github.com/dnphuc04/K5-L3A-DAY08-DongDong-FromWorkflowsToAgents/commit/0f13675dd9cc24832dc466fe465a47c07ae97a18) | `src/tests/test_team_safety.py` (55 ca, chạy trên workflow/single/orchestrator): approval của claim khác / thiếu / hết hạn không refund; ticket injection C-009 bị `denied`; crash 3 điểm × 3 claim rồi resume bằng seed khác chỉ 1 refund + 1 audit; 4 claim cùng đơn O-107 tổng ≤ 35.000; 3 shape cùng store chạy C-014 chỉ 1 refund; kiểm đột biến 16/18 và 10/18 ca fail; `crash.json` 20/20, `benchmark.json` 4 shape × 14 claim × 5 seed |
 
 ## Cá nhân
 

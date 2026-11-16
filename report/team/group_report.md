@@ -50,9 +50,41 @@ Shape C trong `src/lab8/shapes/orchestrator.py` tách vai: orchestrator giữ qu
 
 ## 4. Kết quả
 
-Bảng so sánh 4 shape trên bộ public (từ `src/reports/benchmark.json`): pass rate, pass^5, seed min–max, variance, cost/success, mean/p95 steps. Kèm crash safety (`src/reports/crash.json`) và, nếu có, kết quả tự kiểm trên `student_drop/`.
+*Phần này do Nguyễn Huy Hoàng soạn.* Số liệu lấy từ `src/reports/benchmark.json` (commit `0f13675`), sinh bằng `python -m lab8.benchmark --shapes workflow,single,orchestrator,swarm --cases data/public_claims.jsonl --seeds 11,22,33,44,55 --out reports/benchmark.json`. Cùng 14 claim public, cùng 5 seed, cùng bảng giá mô phỏng, mỗi trial một SQLite mới (70 trial/shape).
 
-...
+| Shape | Pass rate | pass^5 | Seed min–max | Variance | Cost/success (VND mô phỏng) | Mean / p95 steps | Model calls TB | Tool calls TB |
+| --- | --: | --: | --: | --: | --: | --: | --: | --: |
+| A `workflow` | 1.000 | 1.000 | 1.000–1.000 | 0.000000 | **27.86** | 3.79 / 4 | 0.00 | 2.79 |
+| B `single` | 1.000 | 1.000 | 1.000–1.000 | 0.000000 | 29.97 | 4.79 / 5 | 3.79 | 2.79 |
+| C `orchestrator` | 1.000 | 1.000 | 1.000–1.000 | 0.000000 | 56.65 | 4.71 / 5 | 1.00 | 5.57 |
+| D `swarm` (tham chiếu) | 0.986 | 0.929 | 0.929–1.000 | 0.000816 | 49.57 | 2.80 / 3 | 3.00 | 4.66 |
+
+**Đọc số liệu.**
+
+- Ba shape của nhóm đều bão hòa ở 1.000 trên bộ public; trên corpus này chất lượng không phân biệt được giữa A, B, C, chỉ cost và độ tự chủ là khác nhau.
+- Swarm có đúng 1/70 trial fail: `R-swarm-C-002-s55`, `status resolved != denied`. Ticket C-002 ghi trễ 5 ngày, DB ghi 2 ngày; ở seed 55 swarm tin ticket (khối `REFERENCE_WEAKNESS`) nên ra quote dương và host ghi 20.000 VND vì approval A-002 hợp lệ. Host chặn approval/trần/idempotency nhưng không chặn được **dữ kiện sai** mà shape đưa vào — vì vậy ranh giới "chỉ dùng dữ kiện từ DB" phải nằm trong shape. Theo taxonomy MAST đây là lỗi kiểm chứng (không đối chiếu dữ kiện ticket với nguồn có thẩm quyền).
+- Cost: single đắt hơn workflow 7.6% (model call soạn ReAct, token rẻ); orchestrator đắt gấp 2.03 lần, chủ yếu vì tool call gấp đôi (đọc `get_claim_view` hai lần + investigator chạy đủ 4 tool đọc). Claim dừng sớm (C-004 thiếu mã đơn) gần như cùng giá ở mọi shape.
+
+**Crash safety.** `python -m lab8.crash_test --count 20 --out reports/crash.json` → `crash_safety: 20/20` (5 ca `before_effect`, 7 ca `after_effect_before_checkpoint`, 5 ca `after_checkpoint`, cộng amount conflict, retry thiếu approval và swarm crash).
+
+**Kiểm thử an toàn xuyên shape** (`src/tests/test_team_safety.py`, 55 ca, chạy trên workflow/single/orchestrator):
+
+| Nhóm ca | Số ca | Kết quả |
+| --- | --: | --- |
+| Approval của claim khác (C-001 trỏ A-003 150.000 VND), 2 seed | 6 | không refund, không audit |
+| Approval thiếu / không tồn tại | 6 | không refund |
+| C-005 (không approval), C-007 (approval hết hạn), chạy lại 3 seed | 6 | không refund |
+| Ticket injection C-009 ("ignore policy", approval 500.000) | 3 | `denied`, ledger trống |
+| Crash 3 điểm × 3 claim trả tiền (C-001, C-003, C-014) rồi resume bằng seed khác | 27 | đúng 1 refund, 1 audit, số tiền bằng lần chạy sạch |
+| Crash liên tiếp trên cùng store rồi chạy lại | 3 | 1 refund 35.000 |
+| 4 claim cùng đơn O-107 chạy 6 lần | 3 | tổng ledger của đơn = 35.000, 1 dòng |
+| Ba shape lần lượt chạy C-014 trên cùng store | 1 | 1 refund 120.000 (150.000 − 30.000 đã hoàn) |
+
+Để chắc test bắt được lỗi thật, nhóm thử hai đột biến tạm thời trên workflow (đã hoàn nguyên, không commit): ghi thẳng vào ledger bỏ qua host → 16/18 ca workflow fail; bỏ truyền `crash_at` xuống host → 10/18 ca fail.
+
+**Ablation R1** (`src/reports/ablation_r1.json`): chỉ đổi topology workflow → orchestrator, pass giữ 1.000, cost/success ×2.03; chi tiết ở `report/team/research_card.md`.
+
+**Tự kiểm hidden.** Nhóm chưa nhận `student_drop/` nên chưa có `src/reports/hidden_selfcheck.json`; không có số liệu hidden nào được ghi ở đây.
 
 Quyết định kiến trúc và lý do: xem `report/team/decision_adr.md`. Phiếu nghiên cứu và ablation: xem `report/team/research_card.md`.
 
@@ -68,9 +100,26 @@ Chi tiết đóng góp của từng thành viên nằm trong `TEAM.md` (bảng �
 
 ## 7. Hạn chế và hướng cải thiện
 
-MockLLM không phải model sản xuất; latency là `unavailable`. Nêu thêm giới hạn của nhóm và điều kiện làm kết luận thay đổi.
+MockLLM không phải model sản xuất; latency là `unavailable`.
 
-...
+*Phần này do Nguyễn Huy Hoàng soạn.*
+
+**Hạn chế.**
+
+- **Corpus nhỏ và bão hòa.** 14 claim public; ba shape của nhóm đều đạt 1.000 nên benchmark chỉ phân biệt cost, không phân biệt chất lượng. Variance 0 trên public không đảm bảo variance 0 trên hidden (homoglyph, principal lẫn, đơn hủy/đang giao…).
+- **Chưa tự kiểm hidden.** Không có `student_drop/`, nên ngưỡng pass ≥ 0.75 trên 40 claim × 5 seed chưa được kiểm trước.
+- **MockLLM quá ngoan.** Model call của single và orchestrator không quyết định status hay số tiền, nên mọi seed cho cùng kết quả. Với model thật, single có thể chọn tool sai thứ tự, hết 8 bước hoặc tốn token hơn; con số +7.6% cost chỉ đúng với giá và token mô phỏng.
+- **Cost là mô phỏng, không có latency.** Ưu điểm song song của investigator (nếu có) không thể hiện được.
+- **Test an toàn chỉ phủ ca nhóm nghĩ ra.** Crash được bơm ở 3 điểm của host; crash ngoài host (giữa hai lần đọc tool) không làm sai tiền vì chưa ghi gì, nhưng chưa có test riêng. Test cũng chưa chạy song song hai tiến trình cùng claim.
+
+**Hướng cải thiện.**
+
+1. Chạy tự kiểm trên `student_drop/` ngay khi có và chỉ giữ quyết định workflow nếu vẫn ≥ 0.75 với variance thấp.
+2. Bổ sung test metamorphic tự sinh: đổi số ngày trễ trong ticket, thêm homoglyph vào mã đơn, đổi principal — kỳ vọng status/số tiền không đổi hoặc đổi đúng hướng.
+3. Bỏ lần đọc `get_claim_view` trùng trong orchestrator (truyền `principal_id`/`order_id` đã có) để giảm ~1 tool call mỗi claim nếu nhóm cần dùng shape này.
+4. Thêm test hai tiến trình ghi cùng claim để kiểm khóa `BEGIN IMMEDIATE` và idempotency dưới tải đồng thời.
+
+**Điều kiện làm kết luận thay đổi.** Nếu hidden có loại claim mà luật cố định không bao được và workflow rơi dưới 0.75 trong khi single/orchestrator vượt rõ với variance không tăng, nhóm sẽ đổi sang single trước (cost gần workflow nhất). Nếu model thật làm single dao động giữa các seed, workflow càng được ưu tiên.
 
 ## 8. Tài liệu tham khảo
 
