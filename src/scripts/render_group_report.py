@@ -28,7 +28,9 @@ def inline(text):
     return text.replace("`", "")
 
 
-def main():
+def main(source=None, output=None, max_pages=5):
+    source = Path(source) if source else ROOT / "report/team/group_report.md"
+    output = Path(output) if output else OUTPUT
     fonts = Path("C:/Windows/Fonts")
     pdfmetrics.registerFont(TTFont("Arial", str(fonts / "arial.ttf")))
     pdfmetrics.registerFont(TTFont("Arial-Bold", str(fonts / "arialbd.ttf")))
@@ -38,7 +40,7 @@ def main():
     title = ParagraphStyle("title", parent=heading, fontSize=19, leading=24, spaceAfter=15)
     small = ParagraphStyle("small", parent=body, fontSize=9, leading=12, spaceAfter=0, wordWrap="CJK")
     code = ParagraphStyle("code", parent=small, fontSize=8.2, leading=11, spaceAfter=3, wordWrap="CJK")
-    lines = (ROOT / "report/team/group_report.md").read_text(encoding="utf-8-sig").splitlines()
+    lines = source.read_text(encoding="utf-8-sig").splitlines()
     story, paragraph, rows = [], [], []
 
     def flush():
@@ -88,7 +90,7 @@ def main():
         else:
             paragraph.append(line)
     flush()
-    OUTPUT.parent.mkdir(parents=True, exist_ok=True)
+    output.parent.mkdir(parents=True, exist_ok=True)
 
     def footer(canvas, doc):
         canvas.setFont("Arial", 8)
@@ -96,13 +98,19 @@ def main():
         canvas.drawString(42, 26, "DongDong | Lab 8 | From Workflows to Agents")
         canvas.drawRightString(A4[0] - 42, 26, str(doc.page))
 
-    SimpleDocTemplate(str(OUTPUT), pagesize=A4, rightMargin=42, leftMargin=42, topMargin=38, bottomMargin=42,
-                      title="DongDong - Lab 8 group report", author="DongDong").build(story, onFirstPage=footer, onLaterPages=footer)
-    pages = len(PdfReader(OUTPUT).pages)
-    print(f"{OUTPUT}: {pages} pages")
-    if pages > 5:
-        raise RuntimeError("Report exceeds five pages")
+    SimpleDocTemplate(str(output), pagesize=A4, rightMargin=42, leftMargin=42, topMargin=38, bottomMargin=42,
+                      title="DongDong - Lab 8 " + source.stem, author="DongDong").build(story, onFirstPage=footer, onLaterPages=footer)
+    pages = len(PdfReader(output).pages)
+    print(f"{output}: {pages} pages")
+    if pages > max_pages:
+        raise RuntimeError(f"Report exceeds {max_pages} pages")
 
 
 if __name__ == "__main__":
-    main()
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--source')
+    parser.add_argument('--output')
+    parser.add_argument('--max-pages', type=int, default=5)
+    args = parser.parse_args()
+    main(args.source, args.output, args.max_pages)
